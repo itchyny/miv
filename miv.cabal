@@ -1,0 +1,22 @@
+name:                   miv
+version:                0.0.0
+author:                 itchyny <https://github.com/itchyny>
+maintainer:             itchyny <https://github.com/itchyny>
+license:                MIT
+license-file:           LICENSE
+category:               Compiler
+build-type:             Simple
+cabal-version:          >=1.2
+
+executable miv
+  hs-source-dirs:       src
+  main-is:              Main.hs
+  build-depends:        base
+
+test-suite spec
+  hs-source-dirs:       test
+  main-is:              Spec.hs
+  type:                 exitcode-stdio-1.0
+  build-depends:        base
+                      , hspec
+
