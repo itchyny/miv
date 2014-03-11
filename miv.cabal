@@ -11,7 +11,18 @@ cabal-version:          >=1.2
 executable miv
   hs-source-dirs:       src
   main-is:              Main.hs
+  other-modules:        PluginI
+                      , Plugin
+                      , Config
+                      , SettingI
+                      , Setting
+                      , Mode
+                      , Command
+                      , Mapping
   build-depends:        base
+                      , aeson
+                      , bytestring
+                      , unordered-containers
 
 test-suite spec
   hs-source-dirs:       test
@@ -19,4 +30,7 @@ test-suite spec
   type:                 exitcode-stdio-1.0
   build-depends:        base
                       , hspec
+                      , aeson
+                      , bytestring
+                      , unordered-containers
 
