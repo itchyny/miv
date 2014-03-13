@@ -44,6 +44,7 @@ instance Show CmdRange where
   show CmdRangeWhole = "-range=%"
   show (CmdRangeN n) = "-range=" ++ show n
   show (CmdRangeCount n) = "-count=" ++ show n
+  show CmdNoRange = ""
 
 data CmdArg = CmdNonNegArg
             | CmdZeroOneArg
