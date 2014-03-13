@@ -1,28 +1,32 @@
 module Command where
 
 data CmdBang = CmdBang
-             | CmdNoBang deriving Eq
+             | CmdNoBang
+             deriving Eq
 
 instance Show CmdBang where
   show CmdBang = "-bang"
   show CmdNoBang = ""
 
 data CmdBar = CmdBar
-            | CmdNoBar deriving Eq
+            | CmdNoBar
+            deriving Eq
 
 instance Show CmdBar where
   show CmdBar = "-bar"
   show CmdNoBar = ""
 
 data CmdRegister = CmdRegister
-                 | CmdNoRegister deriving Eq
+                 | CmdNoRegister
+                 deriving Eq
 
 instance Show CmdRegister where
   show CmdRegister = "-register"
   show CmdNoRegister = ""
 
 data CmdBuffer = CmdBuffer
-               | CmdNoBuffer deriving Eq
+               | CmdNoBuffer
+               deriving Eq
 
 instance Show CmdBuffer where
   show CmdBuffer = "-buffer"
@@ -33,7 +37,7 @@ data CmdRange = CmdRange
               | CmdRangeN Int
               | CmdRangeCount Int
               | CmdNoRange
-           deriving Eq
+              deriving Eq
 
 instance Show CmdRange where
   show CmdRange = "-range"
