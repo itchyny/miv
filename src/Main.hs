@@ -2,10 +2,11 @@
 module Main where
 
 import Prelude hiding (readFile)
-import Data.Maybe (catMaybes, listToMaybe)
+import Data.Maybe (listToMaybe)
 import Data.ByteString (readFile)
 import System.Directory
 import Control.Applicative ((<$>))
+import Control.Monad (filterM)
 
 import qualified Setting as S
 
@@ -15,15 +16,12 @@ expandHomeDirectory path = return path
 
 getSettingFile :: IO (Maybe FilePath)
 getSettingFile
-  = listToMaybe . catMaybes <$>
-        mapM f [ "~/.vimrc.yaml"
-               , "~/.vim/.vimrc.yaml"
-               , "~/vimrc.yaml"
-               , "~/.vim/vimrc.yaml"
-               ]
-    where f path = expandHomeDirectory path
-               >>= doesFileExist
-               >>= \b -> return (if b then Just path else Nothing)
+  = listToMaybe <$> filterM ((=<<) doesFileExist . expandHomeDirectory)
+       [ "~/.vimrc.yaml"
+       , "~/.vim/.vimrc.yaml"
+       , "~/vimrc.yaml"
+       , "~/.vim/vimrc.yaml"
+       ]
 
 getSetting :: IO (Maybe S.Setting)
 getSetting = fmap S.decodeSetting $ getSettingFile >>=
