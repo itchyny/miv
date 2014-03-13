@@ -20,7 +20,9 @@ executable miv
                       , Command
                       , Mapping
   build-depends:        base
+                      , directory
                       , aeson
+                      , yaml
                       , bytestring
                       , unordered-containers
 
@@ -29,8 +31,10 @@ test-suite spec
   main-is:              Spec.hs
   type:                 exitcode-stdio-1.0
   build-depends:        base
+                      , directory
                       , hspec
                       , aeson
+                      , yaml
                       , bytestring
                       , unordered-containers
 

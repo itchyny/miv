@@ -1,10 +1,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Setting where
 
-import Data.Aeson (decode)
+import Data.Aeson ()
 import Data.Aeson.TH
+import qualified Data.Yaml as Y
 import Data.HashMap.Lazy
-import Data.ByteString.Lazy
+import Data.ByteString
 
 import qualified Plugin as P
 import Config
@@ -20,7 +21,7 @@ data Setting =
 $(deriveJSON defaultOptions ''Setting)
 
 decodeSetting :: ByteString -> Maybe Setting
-decodeSetting = fmap toSetting . decode
+decodeSetting = fmap toSetting . Y.decode
 
 toSetting :: SI.SettingI -> Setting
 toSetting s
