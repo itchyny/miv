@@ -20,6 +20,7 @@ executable miv
                       , Command
                       , Mapping
   build-depends:        base
+                      , process
                       , directory
                       , aeson
                       , yaml
@@ -31,6 +32,7 @@ test-suite spec
   main-is:              Spec.hs
   type:                 exitcode-stdio-1.0
   build-depends:        base
+                      , process
                       , directory
                       , hspec
                       , aeson
