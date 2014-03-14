@@ -130,8 +130,8 @@ vimScriptRepo :: String -> String
 vimScriptRepo name | '/' `elem` name = name
                    | otherwise = "vim-scripts/" ++ name
 
-cleanPlugin :: S.Setting -> IO ()
-cleanPlugin setting = do
+cleanDirectory :: S.Setting -> IO ()
+cleanDirectory setting = do
   createPluginDirectory
   pdir <- pluginDirectory
   cnt <- getDirectoryContents pdir
@@ -156,7 +156,7 @@ mainProgram ["help"] = printUsage
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update
 mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
-mainProgram ["clean"] = getSettingWithError >>= cleanPlugin
+mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram [arg] = suggestCommand arg
 mainProgram _ = printUsage
