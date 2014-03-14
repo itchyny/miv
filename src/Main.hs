@@ -10,7 +10,7 @@ import System.Environment
 import System.Exit
 import System.Process
 import Control.Applicative ((<$>))
-import Control.Monad (filterM, void)
+import Control.Monad (filterM, void, when)
 import Paths_miv
 
 import qualified Setting as S
@@ -68,6 +68,7 @@ arguments = map Argument
           [ ("install", "Installs all the uninstalled plugins.")
           , ("update", "Updates all the plugins.")
           , ("list",   "List the plugins.")
+          , ("clean", "Clean up unused plugins.")
           , ("edit", "Edit the configuration file.")
           , ("help", "Show this help.")
           ]
@@ -107,7 +108,7 @@ updatePlugin update setting = do
   let failure = filter ((/=ExitSuccess) . snd) result
   mapM_ print failure
   if not (null failure)
-     then putStrLn "Error:" >> mapM_ (putStrLn . (++"  ") . P.name . fst) failure
+     then putStrLn "Error:" >> mapM_ (putStrLn . ("  "++) . P.name . fst) failure
      else putStrLn $ "Success in "
                   ++ (if update == Install then "installing" else "updating")
                   ++ "."
@@ -129,6 +130,25 @@ vimScriptRepo :: String -> String
 vimScriptRepo name | '/' `elem` name = name
                    | otherwise = "vim-scripts/" ++ name
 
+cleanPlugin :: S.Setting -> IO ()
+cleanPlugin setting = do
+  createPluginDirectory
+  pdir <- pluginDirectory
+  cnt <- getDirectoryContents pdir
+  let paths = [".", "..", "miv"] ++ map P.rtpName (S.plugin setting)
+      delpath' = [ pdir ++ d | d <- cnt, d `notElem` paths ]
+  deldir <- filterM doesDirectoryExist delpath'
+  delfile <- filterM doesFileExist delpath'
+  let delpath = deldir ++ delfile
+  if not (null delpath)
+     then putStrLn "Remove:"
+       >> mapM_ (putStrLn . ("  "++)) delpath
+       >> putStrLn "Really? [y/N]"
+       >> getChar
+       >>= \c -> when (c == 'y' || c == 'Y')
+                      (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
+     else putStrLn "Clean."
+
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
@@ -136,6 +156,7 @@ mainProgram ["help"] = printUsage
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update
 mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
+mainProgram ["clean"] = getSettingWithError >>= cleanPlugin
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram [arg] = suggestCommand arg
 mainProgram _ = printUsage
