@@ -125,7 +125,9 @@ gatherCommand plg
         , C.cmdRepText = unwords ["call miv#command(" ++ singleQuote (P.rtpName plg) ++ ","
                                , singleQuote c ++ ","
                                , singleQuote "<bang>" ++ ","
-                               , "<q-args>, expand('<line1>'), expand('<line2>'))" ] }) | c <- P.commands plg]
+                               , "<q-args>,"
+                               , "expand('<line1>'),"
+                               , "expand('<line2>'))" ] }) | c <- P.commands plg]
   | otherwise = []
 
 gatherMapping :: P.Plugin -> [String]
