@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 module VimScript where
 
 import Data.Hashable
@@ -6,6 +7,7 @@ import Data.Char (toLower, isAlphaNum)
 import Data.List (intercalate)
 import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe)
+import GHC.Generics
 
 import qualified Setting as S
 import qualified Plugin as P
@@ -19,7 +21,7 @@ data VimScript = VimScript (HM.HashMap Place [String])
 data Place = Plugin
            | Autoload
            | AutoloadSubdir String
-           deriving Eq
+           deriving (Eq, Generic)
 
 instance Hashable Place where
   hash Plugin = 0
