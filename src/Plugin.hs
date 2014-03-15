@@ -5,7 +5,6 @@ import Data.List (isSuffixOf, isPrefixOf)
 import Data.Aeson ()
 import Data.Aeson.TH
 import Data.Maybe (fromMaybe)
-import Control.Monad (liftM2)
 
 import qualified PluginI as PI
 
@@ -15,9 +14,9 @@ data Plugin =
             , commands      :: [String]
             , functions     :: [String]
             , mappings      :: [String]
+            , insert        :: Bool
             , enable        :: String
             , sync          :: Bool
-            , insert        :: Bool
             , mapleader     :: String
             , script        :: [String]
             , afterScript   :: [String]
@@ -38,10 +37,10 @@ rtpName plg = subst (name plg)
 toPlugin :: String -> PI.PluginI -> Plugin
 toPlugin n p
   = Plugin { name = n
-           , filetypes    = fromMaybe [] (liftM2 (:) (PI.filetype p) (PI.filetypes p))
-           , commands     = fromMaybe [] (liftM2 (:) (PI.command p) (PI.commands p))
-           , functions    = fromMaybe [] (liftM2 (:) (PI.function p) (PI.functions p))
-           , mappings     = fromMaybe [] (liftM2 (:) (PI.mapping p) (PI.mappings p))
+           , filetypes    = maybe id (:) (PI.filetype p) (fromMaybe [] (PI.filetypes p))
+           , commands     = maybe id (:) (PI.command p) (fromMaybe [] (PI.commands p))
+           , functions    = maybe id (:) (PI.function p) (fromMaybe [] (PI.functions p))
+           , mappings     = maybe id (:) (PI.mapping p) (fromMaybe [] (PI.mappings p))
            , enable       = fromMaybe "" (PI.enable p)
            , sync         = fromMaybe True (PI.sync p)
            , insert       = fromMaybe False (PI.insert p)
