@@ -20,6 +20,7 @@ executable miv
                       , Command
                       , Mapping
   build-depends:        base
+                      , ghc-prim
                       , process
                       , time
                       , directory
@@ -34,6 +35,7 @@ test-suite spec
   main-is:              Spec.hs
   type:                 exitcode-stdio-1.0
   build-depends:        base
+                      , ghc-prim
                       , process
                       , time
                       , directory
