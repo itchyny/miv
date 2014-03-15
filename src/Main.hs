@@ -11,7 +11,7 @@ import System.Environment
 import System.Exit
 import System.Process
 import Control.Applicative ((<$>))
-import Control.Monad (filterM, void, when)
+import Control.Monad (filterM, void, when, forM_)
 import Paths_miv
 
 import qualified Setting as S
@@ -69,7 +69,8 @@ arguments :: [Argument]
 arguments = map Argument
           [ ("install", "Installs all the uninstalled plugins.")
           , ("update", "Updates all the plugins.")
-          , ("generate",   "Generate miv files.")
+          , ("generate",   "Generate the miv files.")
+          , ("helptags",   "Generate the help tags file.")
           , ("list",   "List the plugins.")
           , ("clean", "Clean up unused plugins.")
           , ("edit", "Edit the configuration file.")
@@ -109,6 +110,7 @@ updatePlugin update setting = do
   createPluginCode setting
   dir <- pluginDirectory
   result <- mapM (updateOnePlugin dir update) $ filter P.sync (S.plugin setting)
+  generateHelpTags setting
   let failure = filter ((/=ExitSuccess) . snd) result
   mapM_ print failure
   if not (null failure)
@@ -116,6 +118,20 @@ updatePlugin update setting = do
      else putStrLn $ "Success in "
                   ++ (if update == Install then "installing" else "updating")
                   ++ "."
+
+generateHelpTags :: S.Setting -> IO ()
+generateHelpTags setting = do
+  dir <- pluginDirectory
+  let docdir = dir ++ "miv/doc/"
+  createDirectoryIfMissing True docdir
+  removeDirectoryRecursive docdir
+  createDirectoryIfMissing True docdir
+  forM_ (map ((++"/doc/") . (dir++) . ('/':) . P.rtpName) (S.plugin setting))
+    $ \path ->
+        doesDirectoryExist path
+          >>= \exists -> when exists (void (system ("cp " ++ path ++ "* " ++ docdir)))
+  _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
+  return ()
 
 updateOnePlugin :: String -> Update -> P.Plugin -> IO (P.Plugin, ExitCode)
 updateOnePlugin dir update plugin = do
@@ -192,7 +208,8 @@ mainProgram ["update"] = getSettingWithError >>= updatePlugin Update
 mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
-mainProgram ["generate"] = getSettingWithError >>= createPluginCode
+mainProgram ["generate"] = getSettingWithError >>= \s -> createPluginCode s >> generateHelpTags s
+mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
 mainProgram [arg] = suggestCommand arg
 mainProgram _ = printUsage
 
