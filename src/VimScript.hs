@@ -44,7 +44,11 @@ vimScriptToList (VimScript x) = HM.toList x
 (+++) (VimScript x) (VimScript y)
   | HM.null x = VimScript y
   | HM.null y = VimScript x
-  | otherwise = VimScript (HM.unionWith ((++) . flip (++) [""]) x y)
+  | otherwise = VimScript (HM.unionWith concat' x y)
+  where
+    concat' a [] = a
+    concat' [] b = b
+    concat' a b = a ++ [""] ++ b
 
 gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
