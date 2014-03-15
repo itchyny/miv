@@ -20,6 +20,10 @@ data PluginI =
              , script        :: Maybe [String]
              , afterScript   :: Maybe [String]
              , beforeScript  :: Maybe [String]
+             , dependon      :: Maybe [String]
+             , dependedby    :: Maybe [String]
+             , loadafter     :: Maybe [String]
+             , loadbefore    :: Maybe [String]
       } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''PluginI)
 

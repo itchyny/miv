@@ -21,7 +21,9 @@ executable miv
                       , Mapping
   build-depends:        base
                       , process
+                      , time
                       , directory
+                      , hashable
                       , aeson
                       , yaml
                       , bytestring
@@ -33,7 +35,9 @@ test-suite spec
   type:                 exitcode-stdio-1.0
   build-depends:        base
                       , process
+                      , time
                       , directory
+                      , hashable
                       , hspec
                       , aeson
                       , yaml

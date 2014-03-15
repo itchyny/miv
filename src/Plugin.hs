@@ -21,6 +21,10 @@ data Plugin =
             , script        :: [String]
             , afterScript   :: [String]
             , beforeScript  :: [String]
+            , dependon      :: [String]
+            , dependedby    :: [String]
+            , loadafter     :: [String]
+            , loadbefore    :: [String]
      } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''Plugin)
 
@@ -48,5 +52,9 @@ toPlugin n p
            , script       = fromMaybe [] (PI.script p)
            , afterScript  = fromMaybe [] (PI.afterScript p)
            , beforeScript = fromMaybe [] (PI.beforeScript p)
+           , dependon     = fromMaybe [] (PI.dependon p)
+           , dependedby   = fromMaybe [] (PI.dependedby p)
+           , loadafter    = fromMaybe [] (PI.loadafter p)
+           , loadbefore   = fromMaybe [] (PI.loadbefore p)
   }
 

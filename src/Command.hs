@@ -101,7 +101,7 @@ defaultCommand
            , cmdBar      = CmdNoBar
            , cmdRegister = CmdNoRegister
            , cmdBuffer   = CmdNoBuffer
-           , cmdRange    = CmdNoRange
+           , cmdRange    = CmdRange
            , cmdArg      = CmdNonNegArg
            , cmdComplete = CmdComplete ""
  }
