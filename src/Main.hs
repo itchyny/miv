@@ -57,11 +57,13 @@ createPluginDirectory =
 printUsage :: IO ()
 printUsage = mapM_ putStrLn usage
 
+commandHelp :: IO ()
+commandHelp = mapM_ print arguments
+
 data Argument = Argument (String, String)
               deriving (Eq, Ord)
 instance Show Argument where
-  show (Argument (x, y)) = "  "
-                        ++ x
+  show (Argument (x, y)) = x
                         ++ replicate (10 - length x) ' '
                         ++ y
 
@@ -74,6 +76,7 @@ arguments = map Argument
           , ("list",   "List the plugins.")
           , ("clean", "Clean up unused plugins.")
           , ("edit", "Edit the configuration file.")
+          , ("command", "Show the commands.")
           , ("help", "Show this help.")
           ]
 
@@ -84,7 +87,7 @@ usage = [ "miv version " ++ showVersion version
         , ""
         , "Commands:"
         ]
-     ++ map show arguments
+     ++ map (("  "++) . show) arguments
      ++ [ ""
         , "You can specify the name of plugins:"
         , "  miv install plugin1 plugin2"
@@ -224,6 +227,7 @@ mainProgram ["help"] = printUsage
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["list"] = getSettingWithError >>= listPlugin
+mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
