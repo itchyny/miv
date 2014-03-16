@@ -161,6 +161,12 @@ vimScriptRepo :: String -> String
 vimScriptRepo name | '/' `elem` name = name
                    | otherwise = "vim-scripts/" ++ name
 
+listPlugin :: S.Setting -> IO ()
+listPlugin setting = mapM_ (putStrLn . format) $ S.plugin setting
+  where format p = space (P.rtpName p, P.name p)
+        space (x, y) = x ++ replicate (max 1 (maxlen + 1 - length x)) ' ' ++ y
+        maxlen = maximum (map (length . P.rtpName) (S.plugin setting))
+
 cleanDirectory :: S.Setting -> IO ()
 cleanDirectory setting = do
   createPluginDirectory
@@ -217,7 +223,7 @@ mainProgram ['-':arg] = mainProgram [arg]
 mainProgram ["help"] = printUsage
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
-mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
+mainProgram ["list"] = getSettingWithError >>= listPlugin
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
