@@ -117,7 +117,6 @@ updatePlugin update plugins setting = do
      $ putStrLn ("Unknown plugin" ++ (if length unknownPlugins == 1 then "" else "s") ++ ":")
        >> mapM_ (putStrLn . ("  "++)) unknownPlugins
   createPluginDirectory
-  createPluginCode setting
   dir <- pluginDirectory
   let filterplugin p = P.sync p && (isNothing plugins || P.rtpName p `elem` fromMaybe [] plugins)
   result <- foldM (updateOnePlugin dir update) (P.defaultPlugin, ExitSuccess)
@@ -127,6 +126,7 @@ updatePlugin update plugins setting = do
      else putStrLn ( "Success in "
                   ++ (if update == Install then "installing" else "updating")
                   ++ "." )
+       >> generatePluginCode setting
        >> generateHelpTags setting
 
 generateHelpTags :: S.Setting -> IO ()
@@ -200,8 +200,8 @@ saveScript (name, relname, code) =
             , "let &cpo = s:save_cpo"
             , "unlet s:save_cpo" ]
 
-createPluginCode :: S.Setting -> IO ()
-createPluginCode setting = do
+generatePluginCode :: S.Setting -> IO ()
+generatePluginCode setting = do
   dir <- fmap (++"miv/") pluginDirectory
   createDirectoryIfMissing True dir
   removeDirectoryRecursive dir
@@ -209,6 +209,7 @@ createPluginCode setting = do
   createDirectoryIfMissing True (dir ++ "autoload/miv/")
   mapM_ (saveScript . (\(t, s) -> (dir ++ show t, show t, s)))
         (vimScriptToList (gatherScript setting))
+  putStrLn "Success in generating Vim scripts of miv."
 
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
@@ -219,7 +220,7 @@ mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
-mainProgram ["generate"] = getSettingWithError >>= \s -> createPluginCode s >> generateHelpTags s
+mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
 mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
