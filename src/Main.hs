@@ -130,7 +130,7 @@ generateHelpTags setting = do
         doesDirectoryExist path
           >>= \exists -> when exists (void (system ("cp " ++ path ++ "* " ++ docdir)))
   _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
-  return ()
+  putStrLn "Success in processing helptags."
 
 updateOnePlugin :: String -> Update -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 updateOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
