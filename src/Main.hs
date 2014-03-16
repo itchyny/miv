@@ -125,7 +125,7 @@ generateHelpTags setting = do
   createDirectoryIfMissing True docdir
   removeDirectoryRecursive docdir
   createDirectoryIfMissing True docdir
-  forM_ (map ((++"/doc/") . (dir++) . ('/':) . P.rtpName) (S.plugin setting))
+  forM_ (map (\p -> dir ++ P.rtpName p ++ "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists (void (system ("cp " ++ path ++ "* " ++ docdir)))
