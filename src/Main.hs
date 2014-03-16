@@ -2,7 +2,7 @@
 module Main where
 
 import Prelude hiding (readFile)
-import Data.Maybe (listToMaybe)
+import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
 import Data.Time
 import Data.Version
@@ -11,7 +11,7 @@ import System.Environment
 import System.Exit
 import System.Process
 import Control.Applicative ((<$>))
-import Control.Monad (filterM, void, when, forM_, foldM)
+import Control.Monad (filterM, void, when, unless, forM_, foldM)
 import Paths_miv
 
 import qualified Setting as S
@@ -85,6 +85,11 @@ usage = [ "miv version " ++ showVersion version
         , "Commands:"
         ]
      ++ map show arguments
+     ++ [ ""
+        , "You can specify the name of plugins:"
+        , "  miv install plugin1 plugin2"
+        , "  miv update plugin1 plugin2"
+        ]
 
 levenshtein :: Eq a => [a] -> [a] -> Int
 levenshtein a b = last $ foldl f [0..length a] b
@@ -104,13 +109,19 @@ suggestCommand arg = do
 
 data Update = Install | Update deriving Eq
 
-updatePlugin :: Update -> S.Setting -> IO ()
-updatePlugin update setting = do
+updatePlugin :: Update -> Maybe [String] -> S.Setting -> IO ()
+updatePlugin update plugins setting = do
+  let installedPlugins = map P.rtpName (S.plugin setting)
+      unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
+  unless (null unknownPlugins)
+     $ putStrLn ("Unknown plugin" ++ (if length unknownPlugins == 1 then "" else "s") ++ ":")
+       >> mapM_ (putStrLn . ("  "++)) unknownPlugins
   createPluginDirectory
   createPluginCode setting
   dir <- pluginDirectory
+  let filterplugin p = P.sync p && (isNothing plugins || P.rtpName p `elem` fromMaybe [] plugins)
   result <- foldM (updateOnePlugin dir update) (P.defaultPlugin, ExitSuccess)
-                                           $ filter P.sync (S.plugin setting)
+                                       $ filter filterplugin (S.plugin setting)
   if snd result /= ExitSuccess
      then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
      else putStrLn ( "Success in "
@@ -203,13 +214,15 @@ mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
 mainProgram ["help"] = printUsage
-mainProgram ["install"] = getSettingWithError >>= updatePlugin Install
-mainProgram ["update"] = getSettingWithError >>= updatePlugin Update
+mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
+mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["list"] = getSettingWithError >>= mapM_ (putStrLn . P.name) . S.plugin
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram ["generate"] = getSettingWithError >>= \s -> createPluginCode s >> generateHelpTags s
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
+mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
+mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
 mainProgram [arg] = suggestCommand arg
 mainProgram _ = printUsage
 
