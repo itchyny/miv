@@ -11,7 +11,7 @@ import System.Environment
 import System.Exit
 import System.Process
 import Control.Applicative ((<$>))
-import Control.Monad (filterM, void, when, forM_)
+import Control.Monad (filterM, void, when, forM_, foldM)
 import Paths_miv
 
 import qualified Setting as S
@@ -109,14 +109,14 @@ updatePlugin update setting = do
   createPluginDirectory
   createPluginCode setting
   dir <- pluginDirectory
-  result <- mapM (updateOnePlugin dir update) $ filter P.sync (S.plugin setting)
-  generateHelpTags setting
-  let failure = filter ((/=ExitSuccess) . snd) result
-  if not (null failure)
-     then putStrLn "Error:" >> mapM_ (putStrLn . ("  "++) . P.name . fst) failure
-     else putStrLn $ "Success in "
+  result <- foldM (updateOnePlugin dir update) (P.defaultPlugin, ExitSuccess)
+                                           $ filter P.sync (S.plugin setting)
+  if snd result /= ExitSuccess
+     then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
+     else putStrLn ( "Success in "
                   ++ (if update == Install then "installing" else "updating")
-                  ++ "."
+                  ++ "." )
+       >> generateHelpTags setting
 
 generateHelpTags :: S.Setting -> IO ()
 generateHelpTags setting = do
@@ -132,8 +132,9 @@ generateHelpTags setting = do
   _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
   return ()
 
-updateOnePlugin :: String -> Update -> P.Plugin -> IO (P.Plugin, ExitCode)
-updateOnePlugin dir update plugin = do
+updateOnePlugin :: String -> Update -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+updateOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
+updateOnePlugin dir update (_, _) plugin = do
   let path = dir ++ P.rtpName plugin
       repo = vimScriptRepo (P.name plugin)
   doesDirectoryExist path

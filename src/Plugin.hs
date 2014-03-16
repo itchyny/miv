@@ -58,3 +58,22 @@ toPlugin n p
            , loadbefore   = fromMaybe [] (PI.loadbefore p)
   }
 
+defaultPlugin :: Plugin
+defaultPlugin =
+  Plugin { name          = []
+         , filetypes     = []
+         , commands      = []
+         , functions     = []
+         , mappings      = []
+         , insert        = False
+         , enable        = []
+         , sync          = False
+         , mapleader     = []
+         , script        = []
+         , afterScript   = []
+         , beforeScript  = []
+         , dependon      = []
+         , dependedby    = []
+         , loadafter     = []
+         , loadbefore    = []
+  }
