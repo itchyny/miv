@@ -25,8 +25,11 @@ data Plugin =
             , dependedby    :: [String]
             , loadafter     :: [String]
             , loadbefore    :: [String]
-     } deriving (Eq, Show)
+     } deriving (Eq, Ord)
 $(deriveJSON defaultOptions ''Plugin)
+
+instance Show Plugin where
+  show = rtpName
 
 rtpName :: Plugin -> String
 rtpName plg = subst (name plg)

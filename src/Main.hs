@@ -108,7 +108,16 @@ suggestCommand arg = do
       mincommands = [y | (x, y) <- commands, x == mindist]
   putStrLn $ "Unknown command: " ++ arg
   putStrLn "Probably:"
-  mapM_ print mincommands
+  mapM_ (putStrLn . ("  "++) . show) mincommands
+
+suggestPlugin :: [P.Plugin] -> String -> IO ()
+suggestPlugin plugin arg = do
+  let plugins = [(levenshtein arg (show p), p) | p <- plugin]
+      mindist = fst (minimum plugins)
+      minplugins = [y | (x, y) <- plugins, x == mindist]
+  putStrLn $ "Unknown plugin: " ++ arg
+  putStrLn "Probably:"
+  mapM_ (putStrLn . ("  "++) . show) minplugins
 
 data Update = Install | Update deriving Eq
 
@@ -117,8 +126,7 @@ updatePlugin update plugins setting = do
   let installedPlugins = map P.rtpName (S.plugin setting)
       unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
   unless (null unknownPlugins)
-     $ putStrLn ("Unknown plugin" ++ (if length unknownPlugins == 1 then "" else "s") ++ ":")
-       >> mapM_ (putStrLn . ("  "++)) unknownPlugins
+     $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
   let filterplugin p = P.sync p && (isNothing plugins || P.rtpName p `elem` fromMaybe [] plugins)
