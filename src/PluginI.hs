@@ -17,9 +17,9 @@ data PluginI =
              , sync          :: Maybe Bool
              , insert        :: Maybe Bool
              , mapleader     :: Maybe String
-             , script        :: Maybe [String]
-             , afterScript   :: Maybe [String]
-             , beforeScript  :: Maybe [String]
+             , script        :: Maybe String
+             , afterScript   :: Maybe String
+             , beforeScript  :: Maybe String
              , dependon      :: Maybe [String]
              , dependedby    :: Maybe [String]
              , loadafter     :: Maybe [String]

@@ -4,7 +4,8 @@ module Setting where
 import Data.Aeson ()
 import Data.Aeson.TH
 import qualified Data.Yaml as Y
-import Data.HashMap.Lazy
+import Data.HashMap.Lazy hiding (map)
+import qualified Data.HashMap.Lazy as HM
 import Data.ByteString hiding (empty)
 import Data.Maybe (fromMaybe)
 
@@ -28,7 +29,7 @@ toSetting :: SI.SettingI -> Setting
 toSetting s
   = Setting { plugin = maybe [] (foldlWithKey' (\a k v -> P.toPlugin k v : a) []) (SI.plugin s)
             , config = SI.config s
-            , filetypeScript = fromMaybe empty (SI.filetypeScript s)
-            , beforeScript = fromMaybe [] (SI.beforeScript s)
-            , afterScript = fromMaybe [] (SI.afterScript s)
+            , filetypeScript = maybe empty (HM.map lines) (SI.filetypeScript s)
+            , beforeScript = lines $ fromMaybe "" (SI.beforeScript s)
+            , afterScript = lines $ fromMaybe "" (SI.afterScript s)
   }

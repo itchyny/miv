@@ -11,9 +11,9 @@ import Config
 data SettingI =
      SettingI { plugin         :: Maybe (HashMap String PluginI)
               , config         :: Maybe Config
-              , filetypeScript :: Maybe (HashMap String [String])
-              , beforeScript   :: Maybe [String]
-              , afterScript    :: Maybe [String]
+              , filetypeScript :: Maybe (HashMap String String)
+              , beforeScript   :: Maybe String
+              , afterScript    :: Maybe String
      } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''SettingI)
 
