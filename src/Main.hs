@@ -69,15 +69,15 @@ instance Show Argument where
 
 arguments :: [Argument]
 arguments = map Argument
-          [ ("install", "Installs all the uninstalled plugins.")
-          , ("update", "Updates all the plugins.")
-          , ("generate",   "Generate the miv files.")
-          , ("helptags",   "Generate the help tags file.")
-          , ("list",   "List the plugins.")
-          , ("clean", "Clean up unused plugins.")
-          , ("edit", "Edit the configuration file.")
-          , ("command", "Show the commands.")
-          , ("help", "Show this help.")
+          [ ("install" , "Installs all the uninstalled plugins.")
+          , ("update"  , "Updates all the plugins.")
+          , ("generate", "Generate the miv files.")
+          , ("helptags", "Generate the help tags file.")
+          , ("list"    , "List the plugins.")
+          , ("clean"   , "Clean up unused plugins.")
+          , ("edit"    , "Edit the configuration file.")
+          , ("command" , "Show the commands.")
+          , ("help"    , "Show this help.")
           ]
 
 usage :: [String]
