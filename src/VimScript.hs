@@ -135,14 +135,16 @@ gatherMapping plg
   | not (null (P.mappings plg))
     = let genMapping
             = [\mode ->
-               M.defaultMapping { M.mapName = c
-                                , M.mapRepText = escape mode ++ ":<C-u>call miv#mapping("
-                                ++ singleQuote (P.rtpName plg) ++ ", "
-                                ++ singleQuote c ++ ", "
-                                ++ singleQuote (show mode) ++ ")<CR>"
-                                , M.mapMode = mode } | c <- P.mappings plg]
+               M.defaultMapping
+                  { M.mapName    = c
+                  , M.mapRepText = escape mode ++ ":<C-u>call miv#mapping("
+                        ++ singleQuote (P.rtpName plg) ++ ", "
+                        ++ singleQuote c ++ ", "
+                        ++ singleQuote (show mode) ++ ")<CR>"
+                  , M.mapMode    = mode } | c <- P.mappings plg]
           escape m = if m == InsertMode then "<ESC>" else ""
-          in concat [map (show . f) [NormalMode, VisualMode, InsertMode] | f <- genMapping]
+          modes = [NormalMode, VisualMode, InsertMode]
+          in concat [map (show . f) modes | f <- genMapping]
   | otherwise = []
 
 beforeScript :: S.Setting -> VimScript
