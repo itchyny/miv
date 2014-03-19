@@ -140,13 +140,17 @@ updatePlugin update plugins setting = do
        >> generatePluginCode setting
        >> generateHelpTags setting
 
+cleanAndCreateDirectory :: String -> IO ()
+cleanAndCreateDirectory directory = do
+  createDirectoryIfMissing True directory
+  removeDirectoryRecursive directory
+  createDirectoryIfMissing True directory
+
 generateHelpTags :: S.Setting -> IO ()
 generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir ++ "miv/doc/"
-  createDirectoryIfMissing True docdir
-  removeDirectoryRecursive docdir
-  createDirectoryIfMissing True docdir
+  cleanAndCreateDirectory docdir
   forM_ (map (\p -> dir ++ P.rtpName p ++ "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
@@ -221,9 +225,8 @@ generatePluginCode :: S.Setting -> IO ()
 generatePluginCode setting = do
   dir <- fmap (++"miv/") pluginDirectory
   createDirectoryIfMissing True dir
-  removeDirectoryRecursive dir
-  createDirectoryIfMissing True (dir ++ "plugin/")
-  createDirectoryIfMissing True (dir ++ "autoload/miv/")
+  cleanAndCreateDirectory (dir ++ "plugin/")
+  cleanAndCreateDirectory (dir ++ "autoload/miv/")
   mapM_ (saveScript . (\(t, s) -> (dir ++ show t, show t, s)))
         (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
