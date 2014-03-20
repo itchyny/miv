@@ -63,9 +63,7 @@ commandHelp = mapM_ print arguments
 data Argument = Argument (String, String)
               deriving (Eq, Ord)
 instance Show Argument where
-  show (Argument (x, y)) = x
-                        ++ replicate (10 - length x) ' '
-                        ++ y
+  show (Argument (x, y)) = x ++ replicate (10 - length x) ' ' ++ y
 
 arguments :: [Argument]
 arguments = map Argument
