@@ -241,9 +241,10 @@ mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
+mainProgram [arg] = suggestCommand arg
 mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
-mainProgram [arg] = suggestCommand arg
+mainProgram (('-':arg):args) = mainProgram (arg:args)
 mainProgram _ = printUsage
 
 main :: IO ()
