@@ -118,6 +118,9 @@ suggestPlugin plugin arg = do
   mapM_ (putStrLn . ("  "++) . show) minplugins
 
 data Update = Install | Update deriving Eq
+instance Show Update where
+  show Install = "installing"
+  show Update = "updating"
 
 updatePlugin :: Update -> Maybe [String] -> S.Setting -> IO ()
 updatePlugin update plugins setting = do
@@ -132,9 +135,7 @@ updatePlugin update plugins setting = do
                                        $ filter filterplugin (S.plugin setting)
   if snd result /= ExitSuccess
      then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
-     else putStrLn ( "Success in "
-                  ++ (if update == Install then "installing" else "updating")
-                  ++ "." )
+     else putStrLn ("Success in " ++ show update ++ ".")
        >> generatePluginCode setting
        >> generateHelpTags setting
 
