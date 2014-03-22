@@ -1,0 +1,36 @@
+#compdef miv
+
+_miv ()
+{
+
+  _arguments -C \
+    '1: :->cmds' \
+    '*: :->args' \
+    && ret=0
+
+  local -a list
+
+  case $state in
+
+    (cmds)
+      list=( ${(f)"$(miv command | sed 's/  */:/')"} )
+      _describe -t commands 'Commands' list && ret=0
+      ;;
+
+    (args)
+      case $line[1] in
+        (install|update)
+          list=( ${(f)"$(miv list | sed 's/ .*//')"} )
+          _describe -t plugins "Plugins" list && ret=0
+          ;;
+        (*)
+          _nothing
+          ;;
+      esac
+      ;;
+
+  esac
+}
+
+return 0
+
