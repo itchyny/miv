@@ -2,16 +2,17 @@
 module Main where
 
 import Prelude hiding (readFile)
+import Data.Functor
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
-import Data.Time
-import Data.Version
+import Data.Time (getCurrentTime)
+import Data.Time.Clock.POSIX (getPOSIXTime)
+import Data.Version (showVersion)
 import System.Directory
 import System.Environment
 import System.Exit
 import System.Process
-import Control.Applicative ((<$>))
-import Control.Monad (filterM, void, when, unless, forM_, foldM)
+import Control.Monad
 import Paths_miv
 
 import qualified Setting as S
@@ -162,14 +163,20 @@ updateOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 updateOnePlugin dir update (_, _) plugin = do
   let path = dir ++ P.rtpName plugin
       repo = vimScriptRepo (P.name plugin)
+  epoch <- round <$> getPOSIXTime
   doesDirectoryExist path
-    >>= \exists -> if not exists
-                      then putStrLn ("Installing: " ++ P.name plugin)
-                           >> (,) plugin <$> clone repo path
-                      else if update == Install
-                              then return (plugin, ExitSuccess)
-                              else putStrLn ("Pulling: " ++ P.name plugin)
-                                   >> (,) plugin <$> pull path
+    >>= \exists -> 
+      if not exists
+         then putStrLn ("Installing: " ++ P.name plugin)
+              >> (,) plugin <$> clone repo path
+         else if update == Install
+                 then return (plugin, ExitSuccess)
+                 else lastUpdate path >>= \lastUpdateTime ->
+                      if lastUpdateTime < epoch - 60 * 60 * 24 * 30
+                         then putStrLn ("Outdated: " ++ P.name plugin)
+                              >> return (plugin, ExitSuccess)
+                         else putStrLn ("Pulling: " ++ P.name plugin)
+                              >> (,) plugin <$> pull path
 
 vimScriptRepo :: String -> String
 vimScriptRepo name | '/' `elem` name = name
