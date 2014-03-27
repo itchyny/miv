@@ -161,7 +161,7 @@ generateHelpTags setting = do
   forM_ (map (\p -> dir ++ P.rtpName p ++ "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
-          >>= \exists -> when exists (void (system ("cp " ++ path ++ "* " ++ docdir)))
+          >>= \exists -> when exists (void (system ("cd " ++ singleQuote path ++ " && cp * " ++ singleQuote docdir)))
   _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
   putStrLn "Success in processing helptags."
 
