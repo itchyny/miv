@@ -240,13 +240,14 @@ singleQuote str = "'" ++ str ++ "'"
 filetypeScript :: HM.HashMap String [String] -> VimScript
 filetypeScript =
   HM.foldrWithKey f
-    (VimScript (HM.singleton Autoload
+    (VimScript (HM.singleton Plugin
     [ "augroup MivFileType"
     , "  autocmd!"
     , "  autocmd FileType * call miv#filetype(expand('<amatch>'))"
     , "augroup END"
-    , ""
-    , "function! miv#filetype(ft)"
+    ]) +++
+    VimScript (HM.singleton Autoload
+    [ "function! miv#filetype(ft)"
     , "  let c = substitute(tolower(a:ft), '[^a-z0-9]', '', 'g')"
     , "  if len(c) && get(s:au, c[0])"
     , "    silent! call miv#{c[0]}#filetype_{c}()"
