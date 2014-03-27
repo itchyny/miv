@@ -31,6 +31,12 @@ getSettingFile
        , "~/.vim/.vimrc.yaml"
        , "~/vimrc.yaml"
        , "~/.vim/vimrc.yaml"
+       , "~/_vimrc.yaml"
+       , "~/.vim/_vimrc.yaml"
+       , "~/_vim/_vimrc.yaml"
+       , "~/vimfiles/.vimrc.yaml"
+       , "~/vimfiles/vimrc.yaml"
+       , "~/vimfiles/_vimrc.yaml"
        ]
 
 getSetting :: IO (Maybe S.Setting)
