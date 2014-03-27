@@ -11,6 +11,7 @@ import Data.Version (showVersion)
 import System.Directory
 import System.Environment
 import System.Exit
+import System.IO (hFlush, stdout)
 import System.Process
 import Control.Monad
 import Paths_miv
@@ -208,7 +209,8 @@ cleanDirectory setting = do
   if not (null delpath)
      then putStrLn "Remove:"
        >> mapM_ (putStrLn . ("  "++)) delpath
-       >> putStrLn "Really? [y/N]"
+       >> putStr "Really? [y/N] "
+       >> hFlush stdout
        >> getChar
        >>= \c -> when (c == 'y' || c == 'Y')
                       (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
