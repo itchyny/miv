@@ -138,8 +138,9 @@ updatePlugin update plugins setting = do
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let filterplugin p = P.sync p && (isNothing plugins || P.rtpName p `elem` fromMaybe [] plugins)
-  result <- foldM (updateOnePlugin dir update) (P.defaultPlugin, ExitSuccess)
+  let specified p = P.rtpName p `elem` fromMaybe [] plugins
+  let filterplugin p = P.sync p && (isNothing plugins || specified p)
+  result <- foldM (\s p -> updateOnePlugin dir update (specified p) s p) (P.defaultPlugin, ExitSuccess)
                                        $ filter filterplugin (S.plugin setting)
   if snd result /= ExitSuccess
      then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
@@ -165,9 +166,9 @@ generateHelpTags setting = do
   _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
   putStrLn "Success in processing helptags."
 
-updateOnePlugin :: String -> Update -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
-updateOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
-updateOnePlugin dir update (_, _) plugin = do
+updateOnePlugin :: String -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+updateOnePlugin _ _ _ x@(_, ExitFailure 2) _ = return x
+updateOnePlugin dir update specified (_, _) plugin = do
   let path = dir ++ P.rtpName plugin
       repo = vimScriptRepo (P.name plugin)
   epoch <- round <$> getPOSIXTime
@@ -179,7 +180,7 @@ updateOnePlugin dir update (_, _) plugin = do
          else if update == Install
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
-                      if lastUpdateTime < epoch - 60 * 60 * 24 * 30
+                      if lastUpdateTime < epoch - 60 * 60 * 24 * 30 && not specified
                          then putStrLn ("Outdated: " ++ P.name plugin)
                               >> return (plugin, ExitSuccess)
                          else putStrLn ("Pulling: " ++ P.name plugin)
