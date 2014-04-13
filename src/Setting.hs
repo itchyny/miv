@@ -1,8 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Setting where
 
-import Data.Aeson ()
-import Data.Aeson.TH
 import qualified Data.Yaml as Y
 import Data.HashMap.Lazy hiding (map)
 import qualified Data.HashMap.Lazy as HM
@@ -22,7 +19,6 @@ data Setting =
              , beforeScript   :: [String]
              , afterScript    :: [String]
      } deriving (Eq, Show)
-$(deriveJSON defaultOptions ''Setting)
 
 decodeSetting :: ByteString -> Maybe Setting
 decodeSetting = fmap toSetting . Y.decode

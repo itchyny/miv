@@ -1,9 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Plugin where
 
 import Data.List (isSuffixOf, isPrefixOf)
-import Data.Aeson ()
-import Data.Aeson.TH
 import Data.Maybe (fromMaybe)
 
 import qualified PluginI as PI
@@ -26,7 +23,6 @@ data Plugin =
             , loadafter     :: [String]
             , loadbefore    :: [String]
      } deriving (Eq, Ord)
-$(deriveJSON defaultOptions ''Plugin)
 
 instance Show Plugin where
   show = rtpName

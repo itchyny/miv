@@ -6,7 +6,6 @@ import Data.Functor
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
 import Data.Time (getCurrentTime)
-import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Version (showVersion)
 import System.Directory
 import System.Environment
@@ -140,8 +139,9 @@ updatePlugin update plugins setting = do
   dir <- pluginDirectory
   let specified p = P.rtpName p `elem` fromMaybe [] plugins
   let filterplugin p = P.sync p && (isNothing plugins || specified p)
-  result <- foldM (\s p -> updateOnePlugin dir update (specified p) s p) (P.defaultPlugin, ExitSuccess)
-                                       $ filter filterplugin (S.plugin setting)
+  let ps = filter filterplugin (S.plugin setting)
+  time <- maximum <$> mapM (lastUpdatePlugin dir) ps
+  result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
   if snd result /= ExitSuccess
      then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
      else putStrLn ("Success in " ++ show update ++ ".")
@@ -166,12 +166,17 @@ generateHelpTags setting = do
   _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
   putStrLn "Success in processing helptags."
 
-updateOnePlugin :: String -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
-updateOnePlugin _ _ _ x@(_, ExitFailure 2) _ = return x
-updateOnePlugin dir update specified (_, _) plugin = do
+lastUpdatePlugin :: String -> P.Plugin -> IO Integer
+lastUpdatePlugin dir plugin = do
+  let path = dir ++ P.rtpName plugin
+  doesDirectoryExist path
+    >>= \exists -> if exists then lastUpdate path else return 0
+
+updateOnePlugin :: Integer -> String -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
+updateOnePlugin time dir update specified (_, _) plugin = do
   let path = dir ++ P.rtpName plugin
       repo = vimScriptRepo (P.name plugin)
-  epoch <- round <$> getPOSIXTime
   doesDirectoryExist path
     >>= \exists -> 
       if not exists
@@ -180,7 +185,7 @@ updateOnePlugin dir update specified (_, _) plugin = do
          else if update == Install
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
-                      if lastUpdateTime < epoch - 60 * 60 * 24 * 30 && not specified
+                      if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
                          then putStrLn ("Outdated: " ++ P.name plugin)
                               >> return (plugin, ExitSuccess)
                          else putStrLn ("Pulling: " ++ P.name plugin)
