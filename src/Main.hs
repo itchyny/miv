@@ -3,6 +3,7 @@ module Main where
 
 import Prelude hiding (readFile)
 import Data.Functor
+import Data.List (foldl')
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
 import Data.Time (getCurrentTime)
@@ -100,7 +101,7 @@ usage = [ "miv version " ++ showVersion version
         ]
 
 levenshtein :: Eq a => [a] -> [a] -> Int
-levenshtein a b = last $ foldl f [0..length a] b
+levenshtein a b = last $ foldl' f [0..length a] b
   where
     f [] _ = []
     f xs@(x:xs') c = scanl (g c) (x + 1) (zip3 a xs xs')

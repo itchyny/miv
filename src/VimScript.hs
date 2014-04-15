@@ -4,7 +4,7 @@ module VimScript where
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.Char (toLower, isAlphaNum)
-import Data.List (intercalate)
+import Data.List (intercalate, foldl')
 import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe)
 import GHC.Generics
@@ -58,7 +58,7 @@ gatherScript setting = addAutoloadNames
                    +++ pluginLoader
                    +++ mappingLoader
                    +++ commandLoader
-                   +++ foldl (+++) (VimScript HM.empty) (map pluginConfig (S.plugin setting))
+                   +++ foldl' (+++) (VimScript HM.empty) (map pluginConfig (S.plugin setting))
                    +++ filetypeLoader setting
                    +++ gatherInsertEnter setting
                    +++ gatherFuncUndefined setting
