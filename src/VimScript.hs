@@ -100,6 +100,10 @@ pluginConfig plg
                       ++ loadScript plg)
   +++ VimScript (HM.singleton aufile (wrapFunction (snd (funcname "before")) (P.beforeScript plg)))
   +++ VimScript (HM.singleton aufile (wrapFunction (snd (funcname "after")) (P.afterScript plg)))
+  +++ if null (loadScript plg) then VimScript HM.empty
+                               else
+      VimScript (HM.singleton (AutoloadSubdir "_") (wrapFunction (funcname' "before") (P.beforeScript plg)))
+  +++ VimScript (HM.singleton (AutoloadSubdir "_") (wrapFunction (funcname' "after") (P.afterScript plg)))
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " ++ P.name plg) : str
@@ -110,12 +114,13 @@ pluginConfig plg
       case getHeadChar (P.rtpName plg) of
            Nothing -> ("", "s:" ++ str ++ "_" ++ name)
            Just c -> ([c], "miv#" ++ [c] ++ "#" ++ str ++ "_" ++ name)
+    funcname' str = "miv#_#" ++ str ++ "_" ++ name
 
 loadScript :: P.Plugin -> [String]
 loadScript plg
   | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
              , P.loadafter plg, P.loadbefore plg ] && not (P.insert plg)
-  = ["call miv#load(" ++ singleQuote (P.rtpName plg) ++ ")"]
+  = ["call miv#load(" ++ singleQuote (P.rtpName plg) ++ ", 1)"]
   | otherwise = []
 
 gatherCommand :: P.Plugin -> [String]
@@ -301,7 +306,7 @@ commandLoader = VimScript (HM.singleton Autoload
 pluginLoader :: VimScript
 pluginLoader = VimScript (HM.singleton Autoload
   [ "let s:loaded = {}"
-  , "function! miv#load(name)"
+  , "function! miv#load(name, ...)"
   , "  if has_key(s:loaded, a:name)"
   , "    return"
   , "  endif"
@@ -311,7 +316,7 @@ pluginLoader = VimScript (HM.singleton Autoload
   , "  endfor"
   , "  let c = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
   , "  if len(c) && get(s:au, c[0])"
-  , "    call miv#{c[0]}#before_{c}()"
+  , "    call miv#{get(a:000, 0) ? '_' : c[0]}#before_{c}()"
   , "  endif"
   , "  let newrtp = expand('~/.vim/miv/' . a:name . '/')"
   , "  if !isdirectory(newrtp)"
@@ -328,7 +333,7 @@ pluginLoader = VimScript (HM.singleton Autoload
   , "    endfor"
   , "  endfor"
   , "  if len(c) && get(s:au, c[0])"
-  , "    call miv#{c[0]}#after_{c}()"
+  , "    call miv#{get(a:000, 0) ? '_' : c[0]}#after_{c}()"
   , "  endif"
   , "  for n in get(s:dependedby, a:name, [])"
   , "    call miv#load(n)"
