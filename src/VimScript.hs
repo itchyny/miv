@@ -306,6 +306,8 @@ commandLoader = VimScript (HM.singleton Autoload
 pluginLoader :: VimScript
 pluginLoader = VimScript (HM.singleton Autoload
   [ "let s:loaded = {}"
+  , "let s:path = expand('~/.vim')"
+  , "let s:mivpath = s:path . '/miv/'"
   , "function! miv#load(name, ...)"
   , "  if has_key(s:loaded, a:name)"
   , "    return"
@@ -318,12 +320,12 @@ pluginLoader = VimScript (HM.singleton Autoload
   , "  if len(c) && get(s:au, c[0])"
   , "    call miv#{get(a:000, 0) ? '_' : c[0]}#before_{c}()"
   , "  endif"
-  , "  let newrtp = expand('~/.vim/miv/' . a:name . '/')"
+  , "  let newrtp = s:mivpath . a:name . '/'"
   , "  if !isdirectory(newrtp)"
   , "    return"
   , "  endif"
   , "  let rtps = split(&rtp, ',')"
-  , "  let &rtp = join(insert(rtps, newrtp, index(rtps, expand('~/.vim'))), ',')"
+  , "  let &rtp = join(insert(rtps, newrtp, index(rtps, s:path)), ',')"
   , "  if isdirectory(newrtp . 'after/')"
   , "    exec 'set rtp+=' . newrtp . 'after/'"
   , "  endif"
