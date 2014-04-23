@@ -19,23 +19,29 @@ data VimScript = VimScript (HM.HashMap Place [String])
                deriving (Eq, Show)
 
 data Place = Plugin
-           | Autoload
-           | AutoloadSubdir String
+           | Autoload String
+           | Ftplugin String
            deriving (Eq, Generic)
 
 instance Hashable Place where
-  hash Plugin = 0
-  hash Autoload = 1
-  hash (AutoloadSubdir s) = 2 + hash s
+  hash Plugin       = 0 `combine` hash ""
+  hash (Autoload s) = 1 `combine` hash s
+  hash (Ftplugin s) = 2 `combine` hash s
 
 instance Show Place where
-  show Plugin = "plugin/miv.vim"
-  show Autoload = "autoload/miv.vim"
-  show (AutoloadSubdir s) = "autoload/miv/" ++ s ++ ".vim"
+  show Plugin        = "plugin/miv.vim"
+  show (Autoload "") = "autoload/miv.vim"
+  show (Autoload s)  = "autoload/miv/" ++ s ++ ".vim"
+  show (Ftplugin s)  = "ftplugin/" ++ s ++ ".vim"
 
 autoloadSubdirName :: Place -> Maybe String
-autoloadSubdirName (AutoloadSubdir s) = Just s
+autoloadSubdirName (Autoload "") = Nothing
+autoloadSubdirName (Autoload s) = Just s
 autoloadSubdirName _ = Nothing
+
+isFtplugin :: Place -> Bool
+isFtplugin (Ftplugin _) = True
+isFtplugin _ = False
 
 vimScriptToList :: VimScript -> [(Place, [String])]
 vimScriptToList (VimScript x) = HM.toList x
@@ -67,14 +73,14 @@ gatherScript setting = addAutoloadNames
 
 addAutoloadNames :: VimScript -> VimScript
 addAutoloadNames h@(VimScript hm)
-  = VimScript (HM.singleton Autoload
+  = VimScript (HM.singleton (Autoload "")
       ["let s:au = { " ++ intercalate ", " ((\x -> singleQuote x ++ ": 1")
                                     <$> mapMaybe autoloadSubdirName (HM.keys hm)) ++ " }"])
   +++ h
 
 dependOnScript :: [P.Plugin] -> VimScript
 dependOnScript plg
-  = VimScript (HM.singleton Autoload $
+  = VimScript (HM.singleton (Autoload "") $
       [ "let s:dependon = {" ]
    ++ [ "      \\ " ++ singleQuote (P.rtpName p) ++ ": [ " ++
                      intercalate ", " [ singleQuote q | q <- P.dependon p ]
@@ -83,7 +89,7 @@ dependOnScript plg
 
 dependedByScript :: [P.Plugin] -> VimScript
 dependedByScript plg
-  = VimScript (HM.singleton Autoload $
+  = VimScript (HM.singleton (Autoload "") $
       [ "let s:dependedby = {" ]
    ++ [ "      \\ " ++ singleQuote (P.rtpName p) ++ ": [ " ++
                      intercalate ", " [ singleQuote q | q <- P.dependedby p ]
@@ -102,13 +108,13 @@ pluginConfig plg
   +++ VimScript (HM.singleton aufile (wrapFunction (snd (funcname "after")) (P.afterScript plg)))
   +++ if null (loadScript plg) then VimScript HM.empty
                                else
-      VimScript (HM.singleton (AutoloadSubdir "_") (wrapFunction (funcname' "before") (P.beforeScript plg)))
-  +++ VimScript (HM.singleton (AutoloadSubdir "_") (wrapFunction (funcname' "after") (P.afterScript plg)))
+      VimScript (HM.singleton (Autoload "_") (wrapFunction (funcname' "before") (P.beforeScript plg)))
+  +++ VimScript (HM.singleton (Autoload "_") (wrapFunction (funcname' "after") (P.afterScript plg)))
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " ++ P.name plg) : str
     mapleader = (\s -> if null s then [] else ["let g:mapleader = " ++ singleQuote s]) (P.mapleader plg)
-    aufile = case funcname "before" of ("", _) -> Plugin; (c, _) -> AutoloadSubdir c
+    aufile = case funcname "before" of ("", _) -> Plugin; (c, _) -> Autoload c
     name = filter isAlphaNum (map toLower (P.rtpName plg))
     funcname str =
       case getHeadChar (P.rtpName plg) of
@@ -168,7 +174,7 @@ filetypeLoader setting
            Just c ->
              let funcname = "miv#" ++ [c] ++ "#load_" ++ filter isAlphaNum (map toLower ft)
                  in val
-                  +++ VimScript (HM.singleton (AutoloadSubdir [c])
+                  +++ VimScript (HM.singleton (Autoload [c])
                        (("function! " ++ funcname ++ "()")
                        : "  setl ft="
                        :  concat [wrapEnable b
@@ -244,28 +250,7 @@ singleQuote str = "'" ++ str ++ "'"
 
 filetypeScript :: HM.HashMap String [String] -> VimScript
 filetypeScript =
-  HM.foldrWithKey f
-    (VimScript (HM.singleton Plugin
-    [ "augroup MivFileType"
-    , "  autocmd!"
-    , "  autocmd FileType * call miv#filetype(expand('<amatch>'))"
-    , "augroup END"
-    ]) +++
-    VimScript (HM.singleton Autoload
-    [ "function! miv#filetype(ft)"
-    , "  let c = substitute(tolower(a:ft), '[^a-z0-9]', '', 'g')"
-    , "  if len(c) && get(s:au, c[0])"
-    , "    silent! call miv#{c[0]}#filetype_{c}()"
-    , "  endif"
-    , "endfunction"
-    ]))
-  where
-    f ft scr val =
-      case getHeadChar ft of
-           Nothing -> val
-           Just c ->
-             let funcname = "miv#" ++ [c] ++ "#filetype_" ++ filter isAlphaNum (map toLower ft)
-                 in val +++ VimScript (HM.singleton (AutoloadSubdir [c]) (wrapFunction funcname scr))
+  HM.foldrWithKey (\ft scr val -> val +++ VimScript (HM.singleton (Ftplugin ft) scr)) (VimScript HM.empty)
 
 wrapFunction :: String -> [String] -> [String]
 wrapFunction funcname script =
@@ -280,7 +265,7 @@ getHeadChar (x:xs) | 'a' <= x && x <= 'z' = Just x
 getHeadChar [] = Nothing
 
 mappingLoader :: VimScript
-mappingLoader = VimScript (HM.singleton Autoload
+mappingLoader = VimScript (HM.singleton (Autoload "")
   [ "function! miv#mapping(name, mapping, mode)"
   , "  silent! execute a:mode . 'unmap' a:mapping"
   , "  call miv#load(a:name)"
@@ -293,7 +278,7 @@ mappingLoader = VimScript (HM.singleton Autoload
   ])
 
 commandLoader :: VimScript
-commandLoader = VimScript (HM.singleton Autoload
+commandLoader = VimScript (HM.singleton (Autoload "")
   [ "function! miv#command(name, command, bang, args, line1, line2)"
   , "  silent! execute 'delcommand' a:command"
   , "  call miv#load(a:name)"
@@ -307,7 +292,7 @@ commandLoader = VimScript (HM.singleton Autoload
   ])
 
 pluginLoader :: VimScript
-pluginLoader = VimScript (HM.singleton Autoload
+pluginLoader = VimScript (HM.singleton (Autoload "")
   [ "let s:loaded = {}"
   , "let s:path = expand('~/.vim')"
   , "let s:mivpath = s:path . '/miv/'"
