@@ -24,9 +24,9 @@ data Place = Plugin
            deriving (Eq, Generic)
 
 instance Hashable Place where
-  hash Plugin       = 0 `combine` hash ""
-  hash (Autoload s) = 1 `combine` hash s
-  hash (Ftplugin s) = 2 `combine` hash s
+  hashWithSalt a Plugin       = a `hashWithSalt` (0 :: Int) `hashWithSalt` ""
+  hashWithSalt a (Autoload s) = a `hashWithSalt` (1 :: Int) `hashWithSalt` s
+  hashWithSalt a (Ftplugin s) = a `hashWithSalt` (2 :: Int) `hashWithSalt` s
 
 instance Show Place where
   show Plugin        = "plugin/miv.vim"
