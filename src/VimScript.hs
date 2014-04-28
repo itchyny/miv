@@ -282,7 +282,7 @@ commandLoader = VimScript (HM.singleton (Autoload "")
   [ "function! miv#command(name, command, bang, args, line1, line2)"
   , "  silent! execute 'delcommand' a:command"
   , "  call miv#load(a:name)"
-  , "  let range = a:line1 != a:line2 ? \"'<,'>\" : ''"
+  , "  let range = a:line1 != a:line2 ? a:line1.','.a:line2 : ''"
   , "  try"
   , "    exec range.a:command.a:bang a:args"
   , "  catch /^Vim\\%((\\a\\+)\\)\\=:E481/"
