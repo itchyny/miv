@@ -6,7 +6,7 @@ import qualified Data.HashMap.Lazy as HM
 import Data.Char (toLower, isAlphaNum)
 import Data.List (intercalate, foldl')
 import Data.Functor ((<$>))
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 import GHC.Generics
 
 import qualified Setting as S
@@ -59,6 +59,7 @@ vimScriptToList (VimScript x) = HM.toList x
 gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
                      $ beforeScript setting
+                   +++ gatherBeforeAfterScript (S.plugin setting)
                    +++ dependOnScript (S.plugin setting)
                    +++ dependedByScript (S.plugin setting)
                    +++ pluginLoader
@@ -70,6 +71,29 @@ gatherScript setting = addAutoloadNames
                    +++ gatherFuncUndefined setting
                    +++ filetypeScript (S.filetypeScript setting)
                    +++ afterScript setting
+
+gatherBeforeAfterScript :: [P.Plugin] -> VimScript
+gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empty, HM.empty)
+  where
+    insertAuNameMap :: (VimScript, HM.HashMap String Char) -> VimScript
+    insertAuNameMap (vs, hm) = VimScript (HM.singleton (Autoload "") $
+          [ "let s:c = {" ]
+       ++ [ "      \\ " ++ singleQuote k ++ ": " ++ singleQuote [a] ++ "," | (k, a) <- HM.toList hm ]
+       ++ [ "      \\ }" ]) +++ vs
+    gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap String Char) -> (VimScript, HM.HashMap String Char)
+    gatherScripts (p:ps) (vs, hm)
+            | null (P.beforeScript p) && null (P.afterScript p) = gatherScripts ps (vs, hm)
+            | otherwise = gatherScripts ps (vs +++ vs', HM.insert name hchar hm)
+      where
+        rtpname = P.rtpName p
+        name = filter isAlphaNum (map toLower rtpname)
+        hchar | null (loadScript p) = getHeadChar' rtpname
+              | otherwise = '_'
+        funcname str = "miv#" ++ [hchar] ++ "#" ++ str ++ "_" ++ name
+        au = Autoload [hchar]
+        vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.beforeScript p)
+                                         ++ wrapFunction (funcname "after") (P.afterScript p)
+    gatherScripts [] (vs, hm) = (vs, hm)
 
 addAutoloadNames :: VimScript -> VimScript
 addAutoloadNames h@(VimScript hm)
@@ -104,29 +128,16 @@ pluginConfig plg
                       ++ gatherCommand plg
                       ++ gatherMapping plg
                       ++ loadScript plg)
-  +++ VimScript (HM.singleton aufile (wrapFunction (snd (funcname "before")) (P.beforeScript plg)))
-  +++ VimScript (HM.singleton aufile (wrapFunction (snd (funcname "after")) (P.afterScript plg)))
-  +++ if null (loadScript plg) then VimScript HM.empty
-                               else
-      VimScript (HM.singleton (Autoload "_") (wrapFunction (funcname' "before") (P.beforeScript plg)))
-  +++ VimScript (HM.singleton (Autoload "_") (wrapFunction (funcname' "after") (P.afterScript plg)))
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " ++ P.name plg) : str
     mapleader = (\s -> if null s then [] else ["let g:mapleader = " ++ singleQuote s]) (P.mapleader plg)
-    aufile = case funcname "before" of ("", _) -> Plugin; (c, _) -> Autoload c
-    name = filter isAlphaNum (map toLower (P.rtpName plg))
-    funcname str =
-      case getHeadChar (P.rtpName plg) of
-           Nothing -> ("", "s:" ++ str ++ "_" ++ name)
-           Just c -> ([c], "miv#" ++ [c] ++ "#" ++ str ++ "_" ++ name)
-    funcname' str = "miv#_#" ++ str ++ "_" ++ name
 
 loadScript :: P.Plugin -> [String]
 loadScript plg
   | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
              , P.loadafter plg, P.loadbefore plg ] && not (P.insert plg)
-  = ["call miv#load(" ++ singleQuote (P.rtpName plg) ++ ", 1)"]
+  = ["call miv#load(" ++ singleQuote (P.rtpName plg) ++ ")"]
   | otherwise = []
 
 gatherCommand :: P.Plugin -> [String]
@@ -264,6 +275,9 @@ getHeadChar (x:xs) | 'a' <= x && x <= 'z' = Just x
                    | otherwise = getHeadChar xs
 getHeadChar [] = Nothing
 
+getHeadChar' :: String -> Char
+getHeadChar' = fromMaybe '_' . getHeadChar
+
 mappingLoader :: VimScript
 mappingLoader = VimScript (HM.singleton (Autoload "")
   [ "function! miv#mapping(name, mapping, mode)"
@@ -296,7 +310,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   [ "let s:loaded = {}"
   , "let s:path = expand('~/.vim')"
   , "let s:mivpath = s:path . '/miv/'"
-  , "function! miv#load(name, ...)"
+  , "function! miv#load(name)"
   , "  if has_key(s:loaded, a:name)"
   , "    return"
   , "  endif"
@@ -304,9 +318,10 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "  for n in get(s:dependon, a:name, [])"
   , "    call miv#load(n)"
   , "  endfor"
-  , "  let c = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
-  , "  if len(c) && get(s:au, c[0])"
-  , "    call miv#{get(a:000, 0) ? '_' : c[0]}#before_{c}()"
+  , "  let name = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
+  , "  let au = has_key(s:c, name) && get(s:au, s:c[name])"
+  , "  if au"
+  , "    call miv#{s:c[name]}#before_{name}()"
   , "  endif"
   , "  let newrtp = s:mivpath . a:name . '/'"
   , "  if !isdirectory(newrtp)"
@@ -322,8 +337,8 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "      silent! source `=file`"
   , "    endfor"
   , "  endfor"
-  , "  if len(c) && get(s:au, c[0])"
-  , "    call miv#{get(a:000, 0) ? '_' : c[0]}#after_{c}()"
+  , "  if au"
+  , "    call miv#{s:c[name]}#after_{name}()"
   , "  endif"
   , "  for n in get(s:dependedby, a:name, [])"
   , "    call miv#load(n)"
