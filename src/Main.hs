@@ -142,7 +142,7 @@ updatePlugin update plugins setting = do
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let specified p = P.rtpName p `elem` fromMaybe [] plugins
+  let specified p = P.rtpName p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = P.sync p && (isNothing plugins || specified p)
   let ps = filter filterplugin (S.plugin setting)
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
@@ -272,6 +272,7 @@ mainProgram ["help"] = printUsage
 mainProgram ["version"] = putStrLn nameversion
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
+mainProgram ["update!"] = getSettingWithError >>= updatePlugin Update (Just [])
 mainProgram ["list"] = getSettingWithError >>= listPlugin
 mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
