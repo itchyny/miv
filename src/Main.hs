@@ -83,12 +83,16 @@ arguments = map Argument
           , ("clean"   , "Clean up unused plugins.")
           , ("edit"    , "Edit the configuration file.")
           , ("command" , "Show the commands.")
+          , ("version" , "Show the version of miv.")
           , ("help"    , "Show this help.")
           ]
 
+nameversion :: String
+nameversion = "miv version " ++ showVersion version
+
 usage :: [String]
-usage = [ "miv version " ++ showVersion version
-        , ""
+usage = nameversion :
+        [ ""
         , "Usage: miv COMMAND"
         , ""
         , "Commands:"
@@ -265,6 +269,7 @@ mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
 mainProgram ["help"] = printUsage
+mainProgram ["version"] = putStrLn nameversion
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["list"] = getSettingWithError >>= listPlugin
