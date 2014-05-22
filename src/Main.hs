@@ -273,6 +273,7 @@ mainProgram ["version"] = putStrLn nameversion
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["update!"] = getSettingWithError >>= updatePlugin Update (Just [])
+mainProgram ["update", "!"] = getSettingWithError >>= updatePlugin Update (Just [])
 mainProgram ["list"] = getSettingWithError >>= listPlugin
 mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
