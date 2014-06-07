@@ -62,13 +62,13 @@ gatherScript setting = addAutoloadNames
                    +++ gatherBeforeAfterScript (S.plugin setting)
                    +++ dependOnScript (S.plugin setting)
                    +++ dependedByScript (S.plugin setting)
+                   +++ gatherFuncUndefined setting
                    +++ pluginLoader
                    +++ mappingLoader
                    +++ commandLoader
                    +++ foldl' (+++) (VimScript HM.empty) (map pluginConfig (S.plugin setting))
                    +++ filetypeLoader setting
                    +++ gatherInsertEnter setting
-                   +++ gatherFuncUndefined setting
                    +++ filetypeScript (S.filetypeScript setting)
                    +++ afterScript setting
 
@@ -124,9 +124,9 @@ pluginConfig :: P.Plugin -> VimScript
 pluginConfig plg
     = VimScript (HM.singleton Plugin $ wrapInfo $
         wrapEnable plg $ mapleader
-                      ++ P.script plg
                       ++ gatherCommand plg
                       ++ gatherMapping plg
+                      ++ P.script plg
                       ++ loadScript plg)
   where
     wrapInfo [] = []
