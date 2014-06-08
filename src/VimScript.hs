@@ -251,6 +251,7 @@ wrapEnable :: P.Plugin -> [String] -> [String]
 wrapEnable plg str
   | null str = []
   | null (P.enable plg) = str
+  | P.enable plg == "0" = []
   | otherwise = (indent ++ "if " ++ P.enable plg)
                            : map ("  "++) str
                            ++ [indent ++ "endif"]
