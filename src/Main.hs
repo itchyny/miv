@@ -143,7 +143,7 @@ updatePlugin update plugins setting = do
   createPluginDirectory
   dir <- pluginDirectory
   let specified p = P.rtpName p `elem` fromMaybe [] plugins || plugins == Just []
-  let filterplugin p = P.sync p && (isNothing plugins || specified p)
+  let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (S.plugin setting)
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
   result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
@@ -187,7 +187,7 @@ updateOnePlugin time dir update specified (_, _) plugin = do
       if not exists
          then putStrLn ("Installing: " ++ P.name plugin)
               >> (,) plugin <$> clone repo path
-         else if update == Install
+         else if update == Install || P.sync plugin
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
                       if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
