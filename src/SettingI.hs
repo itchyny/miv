@@ -14,6 +14,7 @@ data SettingI =
               , filetypeScript :: Maybe (HashMap String String)
               , beforeScript   :: Maybe String
               , afterScript    :: Maybe String
+              , filetypeDetect :: Maybe (HashMap String String)
      } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''SettingI)
 

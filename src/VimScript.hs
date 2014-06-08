@@ -70,6 +70,7 @@ gatherScript setting = addAutoloadNames
                    +++ filetypeLoader setting
                    +++ gatherInsertEnter setting
                    +++ filetypeScript (S.filetypeScript setting)
+                   +++ filetypeDetect (S.filetypeDetect setting)
                    +++ afterScript setting
 
 gatherBeforeAfterScript :: [P.Plugin] -> VimScript
@@ -263,6 +264,15 @@ singleQuote str = "'" ++ str ++ "'"
 filetypeScript :: HM.HashMap String [String] -> VimScript
 filetypeScript =
   HM.foldrWithKey (\ft scr val -> val +++ VimScript (HM.singleton (Ftplugin ft) scr)) (VimScript HM.empty)
+
+filetypeDetect :: HM.HashMap String String -> VimScript
+filetypeDetect =
+  mkVimScript . HM.foldrWithKey (\ext ft val -> val ++ [f ext ft]) []
+    where f ext ft = "  autocmd BufNewFile,BufReadPost *." ++ ext ++ " setlocal filetype=" ++ ft
+          mkVimScript [] = VimScript HM.empty
+          mkVimScript xs = VimScript (HM.singleton Plugin (p ++ xs ++ a))
+          p = ["\" Filetype detection", "augroup MivFileTypeDetect", "  autocmd!"]
+          a = ["augroup END"]
 
 wrapFunction :: String -> [String] -> [String]
 wrapFunction funcname script =

@@ -18,6 +18,7 @@ data Setting =
              , filetypeScript :: HashMap String [String]
              , beforeScript   :: [String]
              , afterScript    :: [String]
+             , filetypeDetect :: HashMap String String
      } deriving (Eq, Show)
 
 decodeSetting :: ByteString -> Maybe Setting
@@ -30,6 +31,7 @@ toSetting s
             , filetypeScript = maybe empty (HM.map lines) (SI.filetypeScript s)
             , beforeScript = lines $ fromMaybe "" (SI.beforeScript s)
             , afterScript = lines $ fromMaybe "" (SI.afterScript s)
+            , filetypeDetect = fromMaybe empty (SI.filetypeDetect s)
   }
 
 sortWith :: Ord b => (a -> b) -> [a] -> [a]
