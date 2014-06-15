@@ -102,6 +102,10 @@ usage = nameversion :
         , "You can specify the name of plugins:"
         , "  miv install plugin1 plugin2"
         , "  miv update plugin1 plugin2"
+        , ""
+        , "Normally, outdated plugins are ignored but"
+        , "you can update all the plugins with trailing !:"
+        , "  miv update !"
         ]
 
 levenshtein :: Eq a => [a] -> [a] -> Int
