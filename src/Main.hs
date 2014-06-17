@@ -191,7 +191,7 @@ updateOnePlugin time dir update specified (_, _) plugin = do
       if not exists
          then putStrLn ("Installing: " ++ P.name plugin)
               >> (,) plugin <$> clone repo path
-         else if update == Install || P.sync plugin
+         else if update == Install || not (P.sync plugin)
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
                       if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
