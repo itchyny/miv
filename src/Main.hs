@@ -185,7 +185,7 @@ generateHelpTags setting = do
 
 lastUpdatePlugin :: String -> P.Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir ++ P.rtpName plugin
+  let path = dir ++ P.rtpName plugin ++ "/.git"
   doesDirectoryExist path
     >>= \exists -> if exists then lastUpdate path else return 0
 
