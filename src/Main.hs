@@ -79,6 +79,7 @@ arguments = map Argument
           , ("update"  , "Updates the plugins.")
           , ("generate", "Generate the miv files.")
           , ("helptags", "Generate the help tags file.")
+          , ("each"    , "Execute command at each plugin directory.")
           , ("list"    , "List the plugins.")
           , ("clean"   , "Clean up unused plugins.")
           , ("edit"    , "Edit the configuration file.")
@@ -106,6 +107,13 @@ usage = nameversion :
         , "Normally, outdated plugins are ignored but"
         , "you can update all the plugins with trailing !:"
         , "  miv update !"
+        , ""
+        , "You can use `miv each' to execute some commands."
+        , "  miv each pwd"
+        , "  miv each git gc"
+        , "  miv each git diff"
+        , "  miv each 'echo $(du -sh .) $(basename $(pwd))'"
+        , "  miv each 'echo \"\\033[1;32m$(basename $(pwd))\\033[0m\" && git diff'"
         ]
 
 levenshtein :: Eq a => [a] -> [a] -> Int
@@ -269,6 +277,27 @@ generatePluginCode setting = do
         (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
 
+eachPlugin :: String -> S.Setting -> IO ()
+eachPlugin command setting = do
+  createPluginDirectory
+  dir <- pluginDirectory
+  result <- foldM (eachOnePlugin command dir) (P.defaultPlugin, ExitSuccess) (S.plugin setting)
+  when (snd result /= ExitSuccess)
+     $ putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
+
+eachOnePlugin :: String -> String -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
+eachOnePlugin command dir (_, _) plugin = do
+  let path = dir ++ P.rtpName plugin
+  doesDirectoryExist path
+    >>= \exists ->
+      if not exists
+         then return (plugin, ExitSuccess)
+         else (,) plugin <$> system (unwords ["cd", singleQuote path, "&&", command])
+
+eachHelp :: IO ()
+eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
+
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
@@ -278,6 +307,7 @@ mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["update!"] = getSettingWithError >>= updatePlugin Update (Just [])
 mainProgram ["update", "!"] = getSettingWithError >>= updatePlugin Update (Just [])
+mainProgram ["each"] = eachHelp
 mainProgram ["list"] = getSettingWithError >>= listPlugin
 mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
@@ -287,6 +317,7 @@ mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
 mainProgram [arg] = suggestCommand arg
 mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
+mainProgram ("each":args) = getSettingWithError >>= eachPlugin (unwords args)
 mainProgram (('-':arg):args) = mainProgram (arg:args)
 mainProgram _ = printUsage
 
