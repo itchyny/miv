@@ -196,11 +196,13 @@ updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
 updateOnePlugin time dir update specified (_, _) plugin = do
   let path = dir ++ P.rtpName plugin
       repo = vimScriptRepo (P.name plugin)
+      cloneCommand = if P.submodule plugin then cloneSubmodule else clone
+      pullCommand = if P.submodule plugin then pullSubmodule else pull
   doesDirectoryExist path
     >>= \exists ->
       if not exists
          then putStrLn ("Installing: " ++ P.name plugin)
-              >> (,) plugin <$> clone repo path
+              >> (,) plugin <$> cloneCommand repo path
          else if update == Install || not (P.sync plugin)
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
@@ -208,7 +210,7 @@ updateOnePlugin time dir update specified (_, _) plugin = do
                          then putStrLn ("Outdated: " ++ P.name plugin)
                               >> return (plugin, ExitSuccess)
                          else putStrLn ("Pulling: " ++ P.name plugin)
-                              >> (,) plugin <$> pull path
+                              >> (,) plugin <$> pullCommand path
 
 vimScriptRepo :: String -> String
 vimScriptRepo name | '/' `elem` name = name

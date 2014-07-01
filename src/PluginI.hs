@@ -24,6 +24,7 @@ data PluginI =
              , dependedby    :: Maybe [String]
              , loadafter     :: Maybe [String]
              , loadbefore    :: Maybe [String]
+             , submodule     :: Maybe Bool
       } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''PluginI)
 

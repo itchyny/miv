@@ -22,6 +22,7 @@ data Plugin =
             , dependedby    :: [String]
             , loadafter     :: [String]
             , loadbefore    :: [String]
+            , submodule     :: Bool
      } deriving (Eq, Ord)
 
 instance Show Plugin where
@@ -55,6 +56,7 @@ toPlugin n p
            , dependedby   = fromMaybe [] (PI.dependedby p)
            , loadafter    = fromMaybe [] (PI.loadafter p)
            , loadbefore   = fromMaybe [] (PI.loadbefore p)
+           , submodule    = fromMaybe False (PI.submodule p)
   }
 
 defaultPlugin :: Plugin
@@ -75,4 +77,5 @@ defaultPlugin =
          , dependedby    = []
          , loadafter     = []
          , loadbefore    = []
+         , submodule     = False
   }
