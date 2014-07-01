@@ -9,7 +9,7 @@
 ```
 
 ## User guide
-+ Add miv path to runtimepath in your vimrc.
+### Add miv path to runtimepath in your vimrc.
 Example vimrc:
 ```vim
 filetype off
@@ -19,8 +19,8 @@ endif
 filetype plugin indent on
 ```
 
-+ create $HOME/.vimrc.yaml
-Example settings:
+### Create ~/.vimrc.yaml
+Example `~/.vimrc.yaml`:
 ```yaml
 plugin:
 
@@ -175,5 +175,45 @@ plugin:
     filetype: coffee
 ```
 
-+ miv install
+### `miv install`
+
+## `miv` subcommands
+### `miv install`
+Installs all the plugins.
+
+### `miv update`
+Update all the plugins.
+
+### `miv install [plugins]`
+Installs the specified plugins.
+
+### `miv update [plugins]`
+Update the specified plugins.
+
+### `miv clean`
+Remove the unused directories.
+
+### `miv generate`
+Generate the miv plugin files. (`miv install` and `miv update` automatically do this task)
+
+### `miv helptags`
+Generate the helptags file. (`miv install` and `miv update` automatically do this task)
+
+### `miv list`
+List all the plugins.
+
+### `miv edit`
+Edit the `~/.vimrc.yaml` file.
+
+### `miv command`
+List the subcommands of `miv`.
+
+### `miv each [commands]`
+Execute the commands each directory of the plugins.
+
+### `miv help`
+Show the help of `miv`.
+
+### `miv version`
+Show the version of `miv`.
 
