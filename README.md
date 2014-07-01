@@ -182,38 +182,38 @@ plugin:
 Installs all the plugins.
 
 ### `miv update`
-Update all the plugins.
+Updates all the plugins.
 
 ### `miv install [plugins]`
 Installs the specified plugins.
 
 ### `miv update [plugins]`
-Update the specified plugins.
+Updates the specified plugins.
 
 ### `miv clean`
-Remove the unused directories.
+Removes the unused directories.
 
 ### `miv generate`
-Generate the miv plugin files. (`miv install` and `miv update` automatically do this task)
+Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)
 
 ### `miv helptags`
-Generate the helptags file. (`miv install` and `miv update` automatically do this task)
+Generates the helptags file. (`miv install` and `miv update` automatically do this task)
 
 ### `miv list`
-List all the plugins.
+Lists all the plugins.
 
 ### `miv edit`
-Edit the `~/.vimrc.yaml` file.
+Edits the `~/.vimrc.yaml` file.
 
 ### `miv command`
-List the subcommands of `miv`.
+Lists the subcommands of `miv`.
 
 ### `miv each [commands]`
-Execute the commands each directory of the plugins.
+Executes the commands each directory of the plugins.
 
 ### `miv help`
-Show the help of `miv`.
+Shows the help of `miv`.
 
 ### `miv version`
-Show the version of `miv`.
+Shows the version of `miv`.
 
