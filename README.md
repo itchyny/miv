@@ -9,7 +9,7 @@
 ```
 
 ## User guide
-1. Add miv path to runtimepath in your vimrc.
++ Add miv path to runtimepath in your vimrc.
 Example vimrc:
 ```vim
 filetype off
@@ -19,7 +19,7 @@ endif
 filetype plugin indent on
 ```
 
-2. create $HOME/.vimrc.yaml
++ create $HOME/.vimrc.yaml
 Example settings:
 ```yaml
 plugin:
@@ -175,5 +175,5 @@ plugin:
     filetype: coffee
 ```
 
-3. miv install
++ miv install
 
