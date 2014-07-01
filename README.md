@@ -9,7 +9,10 @@
 ```
 
 ## User guide
-### Add miv path to runtimepath in your vimrc.
+1. Add the miv plugin path to runtimepath in your vimrc.
+2. Create ~/.vimrc.yaml.
+3. Execute `miv install`.
+
 Example vimrc:
 ```vim
 filetype off
@@ -19,7 +22,6 @@ endif
 filetype plugin indent on
 ```
 
-### Create ~/.vimrc.yaml
 Example `~/.vimrc.yaml`:
 ```yaml
 plugin:
@@ -174,8 +176,6 @@ plugin:
   kchmck/vim-coffee-script:
     filetype: coffee
 ```
-
-### `miv install`
 
 ## `miv` subcommands
 ### `miv install`
