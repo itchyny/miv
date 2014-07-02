@@ -26,6 +26,15 @@ Example `~/.vimrc.yaml`:
 ```yaml
 plugin:
 
+  Valloric/YouCompleteMe: 
+    submodule: true
+    commands: 
+      - YcmCompleter
+      - YcmRestartServer
+      - YcmDiags
+      - YcmShowDetailedDiagnostic
+      - YcmDebugInfo
+
   Shougo/neocomplete.vim:
     enable: has('lua') && v:version > 703
     beforeScript: |
