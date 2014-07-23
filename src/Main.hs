@@ -80,6 +80,7 @@ arguments = map Argument
           , ("generate", "Generate the miv files.")
           , ("helptags", "Generate the help tags file.")
           , ("each"    , "Execute command at each plugin directory.")
+          , ("path"    , "Print the paths of each plugins.")
           , ("list"    , "List the plugins.")
           , ("clean"   , "Clean up unused plugins.")
           , ("edit"    , "Edit the configuration file.")
@@ -302,6 +303,12 @@ eachOnePlugin command dir (_, _) plugin = do
 eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
+pathPlugin :: [String] -> S.Setting -> IO ()
+pathPlugin plugins setting = do
+  let ps = filter (\p -> P.rtpName p `elem` plugins) (S.plugin setting)
+  dir <- pluginDirectory
+  forM_ ps (\plugin -> putStrLn $ dir ++ P.rtpName plugin)
+
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
@@ -322,6 +329,7 @@ mainProgram [arg] = suggestCommand arg
 mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
 mainProgram ("each":args) = getSettingWithError >>= eachPlugin (unwords args)
+mainProgram ("path":args) = getSettingWithError >>= pathPlugin args
 mainProgram (('-':arg):args) = mainProgram (arg:args)
 mainProgram _ = printUsage
 

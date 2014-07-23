@@ -19,7 +19,7 @@ _miv ()
 
     (args)
       case $line[1] in
-        (install|update)
+        (install|update|path)
           list=( ${(f)"$(miv list | sed 's/ .*//')"} )
           _describe -t plugins "Plugins" list && ret=0
           ;;
