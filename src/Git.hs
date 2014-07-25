@@ -31,4 +31,4 @@ gitUrl :: String -> String
 gitUrl repo = "https://github.com/" ++ repo
 
 singleQuote :: String -> String
-singleQuote str = "'" ++ str ++ "'"
+singleQuote str = "\"" ++ str ++ "\""
