@@ -218,10 +218,12 @@ vimScriptRepo name | '/' `elem` name = name
                    | otherwise = "vim-scripts/" ++ name
 
 listPlugin :: S.Setting -> IO ()
-listPlugin setting = mapM_ (putStrLn . format) $ S.plugin setting
-  where format p = space (P.rtpName p, P.name p)
-        space (x, y) = x ++ replicate (max 1 (maxlen + 1 - length x)) ' ' ++ y
-        maxlen = maximum (map (length . P.rtpName) (S.plugin setting))
+listPlugin setting = mapM_ putStrLn $ space $ map format $ S.plugin setting
+  where format p = [P.rtpName p, P.name p, gitUrl (vimScriptRepo (P.name p))]
+        space xs =
+          let max0 = maximum (map (length . (!!0)) xs) + 1
+              max1 = maximum (map (length . (!!1)) xs) + 1
+              in map (\(as:bs:cs:_) -> as ++ replicate (max0 - length as) ' ' ++ bs ++ replicate (max1 - length bs) ' ' ++ cs) xs
 
 cleanDirectory :: S.Setting -> IO ()
 cleanDirectory setting = do
