@@ -10,6 +10,10 @@ _miv ()
 
   local -a list
 
+  if ! command -v miv > /dev/null 2>&1; then
+    return 0
+  fi
+
   case $state in
 
     (cmds)
