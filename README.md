@@ -23,7 +23,7 @@ filetype plugin indent on
 ```
 
 Example `~/.vimrc.yaml`:
-```yaml
+```
 plugin:
 
   Valloric/YouCompleteMe: 
