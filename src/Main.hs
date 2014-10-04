@@ -2,19 +2,19 @@
 module Main where
 
 import Prelude hiding (readFile)
-import Data.Functor
+import Data.Functor ((<$>))
 import Data.List (foldl')
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
 import Data.Time (getCurrentTime)
 import Data.Version (showVersion)
-import System.Directory
-import System.Environment
-import System.Exit
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, getHomeDirectory, removeDirectoryRecursive, removeFile)
+import System.Environment (getArgs)
+import System.Exit (ExitCode(..))
 import System.IO (hFlush, stdout)
-import System.Process
-import Control.Monad
-import Paths_miv
+import System.Process (system)
+import Control.Monad (filterM, foldM, forM_, unless, void, when)
+import Paths_miv (version)
 
 import qualified Setting as S
 import qualified Plugin as P

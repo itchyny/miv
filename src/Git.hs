@@ -8,9 +8,9 @@ module Git
   )
   where
 
-import Data.Functor
-import System.Process
-import System.Exit
+import Data.Functor ((<$>))
+import System.Process (readProcess, system)
+import System.Exit (ExitCode(..))
 
 clone :: String -> String -> IO ExitCode
 clone repo path = system $ unwords ["git", "clone", gitUrl repo, singleQuote path]

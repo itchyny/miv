@@ -7,7 +7,7 @@ import Data.Char (toLower, isAlphaNum)
 import Data.List (intercalate, foldl')
 import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe, fromMaybe)
-import GHC.Generics
+import GHC.Generics (Generic)
 
 import qualified Setting as S
 import qualified Plugin as P
