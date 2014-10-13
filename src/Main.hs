@@ -307,7 +307,7 @@ eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [String] -> S.Setting -> IO ()
 pathPlugin plugins setting = do
-  let ps = filter (\p -> P.rtpName p `elem` plugins) (S.plugin setting)
+  let ps = filter (\p -> P.rtpName p `elem` plugins || null plugins) (S.plugin setting)
   dir <- pluginDirectory
   forM_ ps (\plugin -> putStrLn $ dir ++ P.rtpName plugin)
 
@@ -327,6 +327,7 @@ mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
+mainProgram ["path"] = getSettingWithError >>= pathPlugin []
 mainProgram [arg] = suggestCommand arg
 mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
