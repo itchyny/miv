@@ -184,6 +184,28 @@ plugin:
 
   kchmck/vim-coffee-script:
     filetype: coffee
+
+  kana/vim-textobj-user: {}
+
+  kana/vim-textobj-entire:
+    dependon:
+      - textobj-user
+    mapmode: o
+    mappings:
+      - <Plug>(textobj-entire-a)
+      - <Plug>(textobj-entire-i)
+      - ie
+      - ae
+
+  kana/vim-textobj-line:
+    dependon:
+      - textobj-user
+    mapmode: o
+    mappings:
+      - <Plug>(textobj-line-a)
+      - <Plug>(textobj-line-i)
+      - il
+      - al
 ```
 
 ## `miv` subcommands
@@ -191,6 +213,9 @@ plugin:
 Installs all the plugins.
 
 ### `miv update`
+Updates the plugins (outdated plugins are skipped).
+
+### `miv update!`
 Updates all the plugins.
 
 ### `miv install [plugins]`
@@ -217,8 +242,11 @@ Edits the `~/.vimrc.yaml` file.
 ### `miv command`
 Lists the subcommands of `miv`.
 
+### `miv path [plugins]`
+Prints the paths of the plugins.
+
 ### `miv each [commands]`
-Executes the commands each directory of the plugins.
+Executes the commands each directory of the plugins. For example, you can execute `miv each pwd` or `miv each git gc`.
 
 ### `miv help`
 Shows the help of `miv`.
