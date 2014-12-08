@@ -165,8 +165,8 @@ gatherMapping plg
                         ++ singleQuote c ++ ", "
                         ++ singleQuote (show mode) ++ ")<CR>"
                   , M.mapMode    = mode } | c <- P.mappings plg]
-          escape m = if m == InsertMode then "<ESC>" else ""
-          modes = [NormalMode, VisualMode, InsertMode]
+          escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
+          modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map read (P.mapmodes plg)
           in concat [map (show . f) modes | f <- genMapping]
   | otherwise = []
 
@@ -296,6 +296,9 @@ mappingLoader = VimScript (HM.singleton (Autoload "")
   , "  call miv#load(a:name)"
   , "  if a:mode ==# 'v' || a:mode ==# 'x'"
   , "    call feedkeys('gv', 'n')"
+  , "  elseif a:mode ==# 'o'"
+  , "    call feedkeys(\"\\<Esc>\", 'n')"
+  , "    call feedkeys(v:operator, 'm')"
   , "  endif"
   , "  call feedkeys(substitute(a:mapping, '<Plug>', \"\\<Plug>\", 'g'), 'm')"
   , "  return ''"

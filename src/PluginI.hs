@@ -13,6 +13,8 @@ data PluginI =
              , functions     :: Maybe [String]
              , mapping       :: Maybe String
              , mappings      :: Maybe [String]
+             , mapmode       :: Maybe String
+             , mapmodes      :: Maybe [String]
              , enable        :: Maybe String
              , sync          :: Maybe Bool
              , insert        :: Maybe Bool

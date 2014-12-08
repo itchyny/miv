@@ -11,6 +11,7 @@ data Plugin =
             , commands      :: [String]
             , functions     :: [String]
             , mappings      :: [String]
+            , mapmodes      :: [String]
             , insert        :: Bool
             , enable        :: String
             , sync          :: Bool
@@ -45,6 +46,7 @@ toPlugin n p
            , commands     = maybe id (:) (PI.command p) (fromMaybe [] (PI.commands p))
            , functions    = maybe id (:) (PI.function p) (fromMaybe [] (PI.functions p))
            , mappings     = maybe id (:) (PI.mapping p) (fromMaybe [] (PI.mappings p))
+           , mapmodes     = maybe id (:) (PI.mapmode p) (fromMaybe [] (PI.mapmodes p))
            , enable       = fromMaybe "" (PI.enable p)
            , sync         = fromMaybe True (PI.sync p)
            , insert       = fromMaybe False (PI.insert p)
@@ -66,6 +68,7 @@ defaultPlugin =
          , commands      = []
          , functions     = []
          , mappings      = []
+         , mapmodes      = []
          , insert        = False
          , enable        = []
          , sync          = False

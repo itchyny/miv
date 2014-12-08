@@ -115,6 +115,11 @@ usage = nameversion :
         , "  miv each git diff"
         , "  miv each 'echo $(du -sh .) $(basename $(pwd))'"
         , "  miv each 'echo \"\\033[1;32m$(basename $(pwd))\\033[0m\" && git diff'"
+        , ""
+        , "This software is released under the MIT License."
+        , "This software is distributed at https://github.com/itchyny/miv."
+        , "Report a bug of this software at https://github.com/itchyny/miv/issues."
+        , "The author is itchyny <https://github.com/itchyny>."
         ]
 
 levenshtein :: Eq a => [a] -> [a] -> Int
