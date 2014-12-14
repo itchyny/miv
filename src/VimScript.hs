@@ -62,6 +62,8 @@ gatherScript setting = addAutoloadNames
                    +++ gatherBeforeAfterScript (S.plugin setting)
                    +++ dependOnScript (S.plugin setting)
                    +++ dependedByScript (S.plugin setting)
+                   +++ predefinedMappings (S.plugin setting)
+                   +++ gatherMapmodes (S.plugin setting)
                    +++ gatherFuncUndefined setting
                    +++ pluginLoader
                    +++ mappingLoader
@@ -119,6 +121,24 @@ dependedByScript plg
    ++ [ "      \\ " ++ singleQuote (P.rtpName p) ++ ": [ " ++
                      intercalate ", " [ singleQuote q | q <- P.dependedby p ]
                   ++ " ]," | p <- plg, not (null (P.dependedby p)) ]
+   ++ [ "      \\ }" ])
+
+predefinedMappings :: [P.Plugin] -> VimScript
+predefinedMappings plg
+  = VimScript (HM.singleton (Autoload "") $
+      [ "let s:mappings = {" ]
+   ++ [ "      \\ " ++ singleQuote (P.rtpName p) ++ ": [ " ++
+                     intercalate ", " [ singleQuote q | q <- P.mappings p ]
+                  ++ " ]," | p <- plg, not (null (P.mappings p)) ]
+   ++ [ "      \\ }" ])
+
+gatherMapmodes :: [P.Plugin] -> VimScript
+gatherMapmodes plg
+  = VimScript (HM.singleton (Autoload "") $
+      [ "let s:mapmodes = {" ]
+   ++ [ "      \\ " ++ singleQuote (P.rtpName p) ++ ": [ " ++
+                     intercalate ", " [ singleQuote q | q <- P.mapmodes p ]
+                  ++ " ]," | p <- plg, not (null (P.mapmodes p)) ]
    ++ [ "      \\ }" ])
 
 pluginConfig :: P.Plugin -> VimScript
@@ -292,7 +312,6 @@ getHeadChar' = fromMaybe '_' . getHeadChar
 mappingLoader :: VimScript
 mappingLoader = VimScript (HM.singleton (Autoload "")
   [ "function! miv#mapping(name, mapping, mode)"
-  , "  silent! execute a:mode . 'unmap' a:mapping"
   , "  call miv#load(a:name)"
   , "  if a:mode ==# 'v' || a:mode ==# 'x'"
   , "    call feedkeys('gv', 'n')"
@@ -331,6 +350,11 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "  let s:loaded[a:name] = 1"
   , "  for n in get(s:dependon, a:name, [])"
   , "    call miv#load(n)"
+  , "  endfor"
+  , "  for mode in get(s:mapmodes, a:name, [ 'n', 'v' ])"
+  , "    for mapping in get(s:mappings, a:name, [])"
+  , "      silent! execute mode . 'unmap' mapping"
+  , "    endfor"
   , "  endfor"
   , "  let name = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
   , "  let au = has_key(s:c, name) && get(s:au, s:c[name])"
