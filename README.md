@@ -190,7 +190,9 @@ plugin:
   kana/vim-textobj-entire:
     dependon:
       - textobj-user
-    mapmode: o
+    mapmodes:
+      - o
+      - v
     mappings:
       - <Plug>(textobj-entire-a)
       - <Plug>(textobj-entire-i)
@@ -200,7 +202,9 @@ plugin:
   kana/vim-textobj-line:
     dependon:
       - textobj-user
-    mapmode: o
+    mapmodes:
+      - o
+      - v
     mappings:
       - <Plug>(textobj-line-a)
       - <Plug>(textobj-line-i)
