@@ -101,13 +101,16 @@ usage = nameversion :
         ]
      ++ map (("  "++) . show) arguments
      ++ [ ""
+        , "You can update the plugins by the following command:"
+        , "  miv update"
+        , ""
         , "You can specify the name of plugins:"
         , "  miv install plugin1 plugin2"
         , "  miv update plugin1 plugin2"
         , ""
         , "Normally, outdated plugins are ignored but"
         , "you can update all the plugins with trailing !:"
-        , "  miv update !"
+        , "  miv update!"
         , ""
         , "You can use `miv each' to execute some commands."
         , "  miv each pwd"
