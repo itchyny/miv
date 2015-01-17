@@ -207,7 +207,7 @@ filetypeLoader setting
              let funcname = "miv#" ++ [c] ++ "#load_" ++ filter isAlphaNum (map toLower ft)
                  in val
                   +++ VimScript (HM.singleton (Autoload [c])
-                       (("function! " ++ funcname ++ "()")
+                       (("function! " ++ funcname ++ "() abort")
                        : "  setl ft="
                        :  concat [wrapEnable b
                        [ "  call miv#load(" ++ singleQuote (P.rtpName b) ++ ")"] | b <- plg]
@@ -236,7 +236,7 @@ gatherInsertEnter setting
   = VimScript (HM.singleton Plugin (f [ p | p <- S.plugin setting, P.insert p ]))
   where f [] = []
         f plgs = "\" InsertEnter"
-               : "function! s:insertEnter()"
+               : "function! s:insertEnter() abort"
              : [ "  call miv#load(" ++ singleQuote (P.rtpName p) ++ ")" | p <- plgs ]
             ++ [ "  autocmd! MivInsertEnter"
                , "  augroup! MivInsertEnter"
@@ -254,7 +254,7 @@ gatherFuncUndefined setting
   = VimScript (HM.singleton Plugin (f [ p | p <- S.plugin setting, not (null (P.functions p))]))
   where f [] = []
         f plgs = "\" FuncUndefined"
-               : "function! s:funcUndefined()"
+               : "function! s:funcUndefined() abort"
                : "  let f = expand('<amatch>')"
                : concat [
                [ "  if f =~# " ++ singleQuote q
@@ -296,7 +296,7 @@ filetypeDetect =
 
 wrapFunction :: String -> [String] -> [String]
 wrapFunction funcname script =
-     ["function! " ++ funcname ++ "()"]
+     ["function! " ++ funcname ++ "() abort"]
   ++ map ("  "++) script
   ++ ["endfunction"]
 
@@ -311,7 +311,7 @@ getHeadChar' = fromMaybe '_' . getHeadChar
 
 mappingLoader :: VimScript
 mappingLoader = VimScript (HM.singleton (Autoload "")
-  [ "function! miv#mapping(name, mapping, mode)"
+  [ "function! miv#mapping(name, mapping, mode) abort"
   , "  call miv#load(a:name)"
   , "  if a:mode ==# 'v' || a:mode ==# 'x'"
   , "    call feedkeys('gv', 'n')"
@@ -326,7 +326,7 @@ mappingLoader = VimScript (HM.singleton (Autoload "")
 
 commandLoader :: VimScript
 commandLoader = VimScript (HM.singleton (Autoload "")
-  [ "function! miv#command(name, command, bang, args, line1, line2)"
+  [ "function! miv#command(name, command, bang, args, line1, line2) abort"
   , "  silent! execute 'delcommand' a:command"
   , "  call miv#load(a:name)"
   , "  let range = a:line1 != a:line2 ? a:line1.','.a:line2 : ''"
@@ -343,7 +343,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   [ "let s:loaded = {}"
   , "let s:path = expand('<sfile>:p:h:h')"
   , "let s:mivpath = expand('<sfile>:p:h:h:h') . '/'"
-  , "function! miv#load(name)"
+  , "function! miv#load(name) abort"
   , "  if has_key(s:loaded, a:name)"
   , "    return"
   , "  endif"
