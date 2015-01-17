@@ -3,7 +3,7 @@ module Main where
 
 import Prelude hiding (readFile)
 import Data.Functor ((<$>))
-import Data.List (foldl')
+import Data.List (foldl', nub, isPrefixOf)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.ByteString (readFile)
 import Data.Time (getCurrentTime)
@@ -137,9 +137,16 @@ suggestCommand arg = do
   let commands = [(levenshtein arg x, Argument (x, y)) | (Argument (x, y)) <- arguments]
       mindist = fst (minimum commands)
       mincommands = [y | (x, y) <- commands, x == mindist]
+      prefixcommands = [y | y@(Argument (x, _)) <- arguments, arg `isPrefixOf` x || x `isPrefixOf` arg]
+      containedcommands = [y | y@(Argument (x, _)) <- arguments, length arg > 1 && arg `isContainedIn` x]
   putStrLn $ "Unknown command: " ++ arg
   putStrLn "Probably:"
-  mapM_ (putStrLn . ("  "++) . show) mincommands
+  mapM_ (putStrLn . ("  "++) . show) (if null prefixcommands then nub (containedcommands ++ mincommands) else prefixcommands)
+
+isContainedIn :: Eq a => [a] -> [a] -> Bool
+isContainedIn xxs@(x:xs) (y:ys) = x == y && xs `isContainedIn` ys || xxs `isContainedIn` ys
+isContainedIn [] _ = True
+isContainedIn _ [] = False
 
 suggestPlugin :: [P.Plugin] -> String -> IO ()
 suggestPlugin plugin arg = do
