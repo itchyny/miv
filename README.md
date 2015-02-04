@@ -53,48 +53,38 @@ plugin:
     mapleader: \
     commands:
       - VimFiler
-      - VimFilerDouble
-      - VimFilerCurrentDir
-      - VimFilerBufferDir
-      - VimFilerCreate
-      - VimFilerSimple
-      - VimFilerSplit
       - VimFilerTab
+      - VimFilerBufferDir
       - VimFilerExplorer
     dependon:
       - vimproc
       - unite
-      - vinarise
     beforeScript: |
       let g:vimfiler_as_default_explorer = 1
       let g:vimfiler_sort_type = 'TIME'
     script: |
-      nnoremap <silent> <Leader>f :<C-u>VimFilerBufferDir -status -buffer-name=vimfiler -auto-cd<CR>
+      nnoremap <silent> <Leader>f :<C-u>VimFilerBufferDir -auto-cd<CR>
 
   Shougo/vinarise:
-    loadbefore:
-      - vimfiler
+    commands:
+      - Vinarise
 
   Shougo/unite.vim:
     commands:
       - Unite
-      - UniteWithCurrentDir
-      - UniteWithBufferDir
-      - UniteWithProjectDir
-      - UniteWithCursorWord
-      - UniteWithInput
-      - UniteWithInputDirectory
-      - UniteResume
-      - UniteClose
     mapleader: ","
+    function: unite
     beforeScript: |
-      let g:unite_enable_start_insert = 1
-      let g:unite_cursor_line_highlight = 'CursorLine'
       let g:unite_force_overwrite_statusline = 0
     script: |
-      nnoremap <silent><C-n> :<C-u>Unite file/new directory/new -buffer-name=file/new,directory/new<CR>
-      nnoremap <silent><C-o> :<C-u>Unite file file/new -buffer-name=file<CR>
-      nnoremap <silent><S-l> :<C-u>Unite line -buffer-name=line<CR>
+      nnoremap <silent><C-n> :<C-u>Unite file/new directory/new<CR>
+      nnoremap <silent><C-o> :<C-u>Unite file file/new<CR>
+      nnoremap <silent><S-l> :<C-u>Unite line<CR>
+    afterScript: |
+      call unite#custom#profile('default', 'context', {
+            \ 'start_insert' : 1,
+            \ 'prompt_direction': 'top',
+            \ 'hide_icon': 0 })
     dependedby:
       - unite-build
       - unite-colorscheme
@@ -115,16 +105,10 @@ plugin:
   Shougo/vimshell.vim:
     commands:
       - VimShell
-      - VimShellCreate
       - VimShellPop
       - VimShellTab
-      - VimShellCurrentDir
-      - VimShellBufferDir
-      - VimShellExecute
       - VimShellInteractive
-      - VimShellTerminal
-      - VimShellSendString
-      - VimShellSendBuffer
+    function: vimshell
     mapleader: ;
     dependon:
       - vimproc
@@ -164,11 +148,13 @@ plugin:
     filetype: json
 
   mattn/emmet-vim:
-    filetype: html
+    filetypes: 
+      - html
+      - css
     beforeScript: |
       let g:user_emmet_settings = { 'indentation' : '  ' }
     afterScript: |
-      imap <buffer><silent> <tab> <plug>(emmet-expand-abbr)
+      autocmd FileType html,css imap <buffer> <tab> <plug>(emmet-expand-abbr)
 
   wavded/vim-stylus:
     filetype: stylus
