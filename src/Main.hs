@@ -198,7 +198,7 @@ generateHelpTags setting = do
           >>= \exists -> when exists $ void
               $ system $ unwords ["cd", singleQuote path,
                                   "&& cp *", singleQuote docdir, "2>/dev/null"]
-  _ <- system $ "vim -u NONE -i NONE -N -c 'helptags " ++ docdir ++ "' -c 'noa qa!'"
+  _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " ++ docdir ++ "' -c quit"
   putStrLn "Success in processing helptags."
 
 lastUpdatePlugin :: String -> P.Plugin -> IO Integer
