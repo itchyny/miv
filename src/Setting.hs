@@ -2,7 +2,6 @@ module Setting where
 
 import qualified Data.Yaml as Y
 import qualified Data.HashMap.Lazy as HM
-import Data.ByteString hiding (empty)
 import Data.Maybe (fromMaybe)
 import Data.List (sortBy)
 import Data.Function (on)
@@ -20,8 +19,8 @@ data Setting =
              , filetypeDetect :: HM.HashMap String String
      } deriving (Eq, Show)
 
-decodeSetting :: ByteString -> Maybe Setting
-decodeSetting = fmap toSetting . Y.decode
+decodeSetting :: FilePath -> IO (Maybe Setting)
+decodeSetting = fmap (fmap toSetting) . Y.decodeFile
 
 toSetting :: SI.SettingI -> Setting
 toSetting s

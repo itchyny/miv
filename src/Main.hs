@@ -5,7 +5,6 @@ import Prelude hiding (readFile)
 import Data.Functor ((<$>))
 import Data.List (foldl', nub, isPrefixOf)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
-import Data.ByteString (readFile)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time (getCurrentTime)
@@ -15,7 +14,7 @@ import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
 import System.IO (hFlush, stdout)
 import System.Process (system)
-import Control.Monad (filterM, foldM, forM_, unless, void, when)
+import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
 import Paths_miv (version)
 
 import qualified Setting as S
@@ -43,8 +42,7 @@ getSettingFile
        ]
 
 getSetting :: IO (Maybe S.Setting)
-getSetting = fmap S.decodeSetting $ getSettingFile >>=
-               maybe (return "") ((=<<) readFile . expandHomeDirectory)
+getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= S.decodeSetting
 
 getSettingWithError :: IO S.Setting
 getSettingWithError =
