@@ -28,6 +28,7 @@ executable miv
                       , aeson
                       , yaml
                       , bytestring
+                      , text
                       , unordered-containers
 
 test-suite spec
@@ -44,5 +45,6 @@ test-suite spec
                       , aeson
                       , yaml
                       , bytestring
+                      , text
                       , unordered-containers
 
