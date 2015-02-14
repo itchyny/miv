@@ -21,24 +21,24 @@ data VimScript = VimScript (HM.HashMap Place [T.Text])
                deriving (Eq, Show)
 
 data Place = Plugin
-           | Autoload String
-           | Ftplugin String
+           | Autoload T.Text
+           | Ftplugin T.Text
            deriving (Eq, Generic)
 
 instance Hashable Place where
-  hashWithSalt a Plugin       = a `hashWithSalt` (0 :: Int) `hashWithSalt` ("" :: String)
+  hashWithSalt a Plugin       = a `hashWithSalt` (0 :: Int) `hashWithSalt` ("" :: T.Text)
   hashWithSalt a (Autoload s) = a `hashWithSalt` (1 :: Int) `hashWithSalt` s
   hashWithSalt a (Ftplugin s) = a `hashWithSalt` (2 :: Int) `hashWithSalt` s
 
 instance Show Place where
   show Plugin        = "plugin/miv.vim"
   show (Autoload "") = "autoload/miv.vim"
-  show (Autoload s)  = "autoload/miv/" ++ s ++ ".vim"
-  show (Ftplugin s)  = "ftplugin/" ++ s ++ ".vim"
+  show (Autoload s)  = "autoload/miv/" ++ T.unpack s ++ ".vim"
+  show (Ftplugin s)  = "ftplugin/" ++ T.unpack s ++ ".vim"
 
 autoloadSubdirName :: Place -> Maybe T.Text
 autoloadSubdirName (Autoload "") = Nothing
-autoloadSubdirName (Autoload s) = Just (T.pack s)
+autoloadSubdirName (Autoload s) = Just s
 autoloadSubdirName _ = Nothing
 
 isFtplugin :: Place -> Bool
@@ -95,7 +95,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
         hchar | null (loadScript p) = getHeadChar' (P.rtpName p)
               | otherwise = '_'
         funcname str = "miv#" <> T.singleton hchar <> "#" <> str <> "_" <> T.pack name
-        au = Autoload [hchar]
+        au = Autoload (T.singleton hchar)
         vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.beforeScript p)
                                          ++ wrapFunction (funcname "after") (P.afterScript p)
     gatherScripts [] (vs, hm) = (vs, hm)
@@ -208,7 +208,7 @@ filetypeLoader setting
            Just c ->
              let funcname = "miv#" <> T.singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
                  in val
-                  +++ VimScript (HM.singleton (Autoload [c])
+                  +++ VimScript (HM.singleton (Autoload (T.singleton c))
                        (("function! " <> funcname <> "() abort")
                        : "  setl ft="
                        :  concat [wrapEnable b
@@ -288,7 +288,7 @@ singleQuote' str = "'" ++ str ++ "'"
 
 filetypeScript :: HM.HashMap T.Text [T.Text] -> VimScript
 filetypeScript =
-  HM.foldrWithKey (\ft scr val -> val +++ VimScript (HM.singleton (Ftplugin (T.unpack ft)) scr)) (VimScript HM.empty)
+  HM.foldrWithKey (\ft scr val -> val +++ VimScript (HM.singleton (Ftplugin ft) scr)) (VimScript HM.empty)
 
 filetypeDetect :: HM.HashMap T.Text T.Text -> VimScript
 filetypeDetect =
