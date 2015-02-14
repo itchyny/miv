@@ -8,7 +8,7 @@ import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
-import Data.Time (getCurrentTime)
+import Data.Time (getZonedTime)
 import Data.Version (showVersion)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, getHomeDirectory, removeDirectoryRecursive, removeFile)
 import System.Environment (getArgs)
@@ -268,7 +268,7 @@ saveScript (dir, place, code) =
       relname = show place
       name = dir ++ relname 
       isallascii = all (T.all (<='~')) code in
-  getCurrentTime >>= \time ->
+  getZonedTime >>= \time ->
   T.writeFile name $ T.unlines $
             [ "\" Filename: " <> T.pack relname
             , "\" Last Change: " <> T.pack (show time)
