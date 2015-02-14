@@ -38,9 +38,9 @@ rtpName plg = subst (name plg)
                 | "vim-" `T.isPrefixOf` s = T.drop 4 s
                 | otherwise = T.filter (`notElem`"!?;:/<>()[]{}|~'\"") s
 
-toPlugin :: String -> PI.PluginI -> Plugin
+toPlugin :: T.Text -> PI.PluginI -> Plugin
 toPlugin n p
-  = Plugin { name = T.pack n
+  = Plugin { name = n
            , filetypes    = maybe id (:) (PI.filetype p) (fromMaybe [] (PI.filetypes p))
            , commands     = maybe id (:) (PI.command p) (fromMaybe [] (PI.commands p))
            , functions    = maybe id (:) (PI.function p) (fromMaybe [] (PI.functions p))

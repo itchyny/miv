@@ -9,7 +9,7 @@ import qualified Data.Text as T
 import PluginI
 
 data SettingI =
-     SettingI { plugin         :: Maybe (HashMap String PluginI)
+     SettingI { plugin         :: Maybe (HashMap T.Text PluginI)
               , filetypeScript :: Maybe (HashMap T.Text T.Text)
               , beforeScript   :: Maybe T.Text
               , afterScript    :: Maybe T.Text
