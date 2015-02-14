@@ -64,21 +64,22 @@ instance Monoid VimScript where
 gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
                      $ beforeScript setting
-                    <> gatherBeforeAfterScript (S.plugin setting)
-                    <> dependOnScript (S.plugin setting)
-                    <> dependedByScript (S.plugin setting)
-                    <> predefinedMappings (S.plugin setting)
-                    <> gatherMapmodes (S.plugin setting)
+                    <> gatherBeforeAfterScript plugins
+                    <> gather "dependon" P.dependon plugins
+                    <> gather "dependedby" P.dependedby plugins
+                    <> gather "mappings" P.mappings plugins
+                    <> gather "mapmodes" P.mapmodes plugins
                     <> gatherFuncUndefined setting
                     <> pluginLoader
                     <> mappingLoader
                     <> commandLoader
-                    <> foldl' (<>) mempty (map pluginConfig (S.plugin setting))
+                    <> foldl' (<>) mempty (map pluginConfig plugins)
                     <> filetypeLoader setting
                     <> gatherInsertEnter setting
                     <> filetypeScript (S.filetypeScript setting)
                     <> filetypeDetect (S.filetypeDetect setting)
                     <> afterScript setting
+  where plugins = S.plugin setting
 
 gatherBeforeAfterScript :: [P.Plugin] -> VimScript
 gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
@@ -109,40 +110,13 @@ addAutoloadNames h@(VimScript hm)
                                     <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
    <> h
 
-dependOnScript :: [P.Plugin] -> VimScript
-dependOnScript plg
+gather :: T.Text -> (P.Plugin -> [T.Text]) -> [P.Plugin] -> VimScript
+gather name f plg
   = VimScript (HM.singleton (Autoload "") $
-      [ "let s:dependon = {" ]
+      [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
-                     T.intercalate ", " [ singleQuote q | q <- P.dependon p ]
-                  <> " ]," | p <- plg, not (null (P.dependon p)) ]
-   <> [ "      \\ }" ])
-
-dependedByScript :: [P.Plugin] -> VimScript
-dependedByScript plg
-  = VimScript (HM.singleton (Autoload "") $
-      [ "let s:dependedby = {" ]
-   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
-                     T.intercalate ", " [ singleQuote q | q <- P.dependedby p ]
-                  <> " ]," | p <- plg, not (null (P.dependedby p)) ]
-   <> [ "      \\ }" ])
-
-predefinedMappings :: [P.Plugin] -> VimScript
-predefinedMappings plg
-  = VimScript (HM.singleton (Autoload "") $
-      [ "let s:mappings = {" ]
-   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
-                     T.intercalate ", " [ singleQuote q | q <- P.mappings p ]
-                  <> " ]," | p <- plg, not (null (P.mappings p)) ]
-   <> [ "      \\ }" ])
-
-gatherMapmodes :: [P.Plugin] -> VimScript
-gatherMapmodes plg
-  = VimScript (HM.singleton (Autoload "") $
-      [ "let s:mapmodes = {" ]
-   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
-                     T.intercalate ", " [ singleQuote q | q <- P.mapmodes p ]
-                  <> " ]," | p <- plg, not (null (P.mapmodes p)) ]
+                     T.intercalate ", " [ singleQuote q | q <- f p ]
+                  <> " ]," | p <- plg, not (null (f p)) ]
    <> [ "      \\ }" ])
 
 pluginConfig :: P.Plugin -> VimScript
