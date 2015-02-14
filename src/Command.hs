@@ -1,4 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Command where
+
+import qualified Data.Text as T
 
 data CmdBang = CmdBang
              | CmdNoBang
@@ -68,8 +71,8 @@ instance Show CmdComplete where
   show (CmdComplete complete) = "-complete=" ++ complete
 
 data Command =
-     Command { cmdName     :: String
-             , cmdRepText  :: String
+     Command { cmdName     :: T.Text
+             , cmdRepText  :: T.Text
              , cmdBang     :: CmdBang
              , cmdBar      :: CmdBar
              , cmdRegister :: CmdRegister
@@ -89,8 +92,8 @@ instance Show Command where
            , show (cmdRange cmd)
            , show (cmdArg cmd)
            , show (cmdComplete cmd)
-           , cmdName cmd
-           , cmdRepText cmd
+           , T.unpack (cmdName cmd)
+           , T.unpack (cmdRepText cmd)
            ])
 
 defaultCommand :: Command

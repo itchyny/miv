@@ -3,7 +3,7 @@ module VimScript where
 
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
-import Data.Char (toLower, isAlphaNum)
+import Data.Char (isAlpha, isAlphaNum, toLower)
 import Data.List (foldl')
 import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe, fromMaybe)
@@ -92,7 +92,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
       where
         rtpname = show p
         name = filter isAlphaNum (map toLower rtpname)
-        hchar | null (loadScript p) = getHeadChar' rtpname
+        hchar | null (loadScript p) = getHeadChar' (P.rtpName p)
               | otherwise = '_'
         funcname str = "miv#" <> T.singleton hchar <> "#" <> str <> "_" <> T.pack name
         au = Autoload [hchar]
@@ -166,8 +166,8 @@ loadScript plg
 gatherCommand :: P.Plugin -> [T.Text]
 gatherCommand plg
   | not (null (P.commands plg))
-    = [T.pack $ show (C.defaultCommand { C.cmdName = T.unpack c
-        , C.cmdRepText = T.unpack $ T.unwords ["call miv#command(" <> singleQuote (P.rtpName plg) <> ","
+    = [T.pack $ show (C.defaultCommand { C.cmdName = c
+        , C.cmdRepText = T.unwords ["call miv#command(" <> singleQuote (P.rtpName plg) <> ","
                                , singleQuote c <> ","
                                , singleQuote "<bang>" <> ","
                                , "<q-args>,"
@@ -202,9 +202,8 @@ filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting
   = HM.foldrWithKey f (VimScript HM.empty) (filetypeLoadPlugins (S.plugin setting) HM.empty)
   where
-    f t plg val =
-      let ft = T.pack t in
-      case getHeadChar (T.unpack ft) of
+    f ft plg val =
+      case getHeadChar ft of
            Nothing -> val
            Just c ->
              let funcname = "miv#" <> T.singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
@@ -227,10 +226,10 @@ filetypeLoader setting
                        , "augroup END"
                        ])
 
-filetypeLoadPlugins :: [P.Plugin] -> HM.HashMap String [P.Plugin] -> HM.HashMap String [P.Plugin]
+filetypeLoadPlugins :: [P.Plugin] -> HM.HashMap T.Text [P.Plugin] -> HM.HashMap T.Text [P.Plugin]
 filetypeLoadPlugins (b:plugins) fts
   | not (null (P.filetypes b))
-  = filetypeLoadPlugins plugins (foldr (flip (HM.insertWith (<>)) [b]) fts (map T.unpack $ P.filetypes b))
+  = filetypeLoadPlugins plugins (foldr (flip (HM.insertWith (<>)) [b]) fts (P.filetypes b))
   | otherwise = filetypeLoadPlugins plugins fts
 filetypeLoadPlugins [] fts = fts
 
@@ -306,13 +305,12 @@ wrapFunction funcname script =
   <> map ("  "<>) script
   ++ ["endfunction"]
 
-getHeadChar :: String -> Maybe Char
-getHeadChar (x:xs) | 'a' <= x && x <= 'z' = Just x
-                   | 'A' <= x && x <= 'Z' = Just (toLower x)
-                   | otherwise = getHeadChar xs
-getHeadChar [] = Nothing
+getHeadChar :: T.Text -> Maybe Char
+getHeadChar xs
+  | T.null xs = Nothing
+  | otherwise = let x = T.head xs in if isAlpha x then Just (toLower x) else getHeadChar (T.tail xs)
 
-getHeadChar' :: String -> Char
+getHeadChar' :: T.Text -> Char
 getHeadChar' = fromMaybe '_' . getHeadChar
 
 mappingLoader :: VimScript
