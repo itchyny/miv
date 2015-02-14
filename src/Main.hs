@@ -13,6 +13,7 @@ import Data.Version (showVersion)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, getHomeDirectory, removeDirectoryRecursive, removeFile)
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
+import System.Info (os)
 import System.IO (hFlush, stdout)
 import System.Process (system)
 import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
@@ -57,7 +58,11 @@ getSettingWithError =
                   Just setting -> return setting
 
 pluginDirectory :: IO String
-pluginDirectory = expandHomeDirectory "~/.vim/miv/"
+pluginDirectory = do
+  dir <- expandHomeDirectory "~/.vim/miv/"
+  windir <- expandHomeDirectory "~/vimfiles/miv/"
+  exists <- doesDirectoryExist dir
+  return (if exists then dir else (if os `elem` ["windows", "mingw"] then windir else dir))
 
 createPluginDirectory :: IO ()
 createPluginDirectory =
