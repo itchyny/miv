@@ -8,7 +8,7 @@ import Data.Char (isAlpha, isAlphaNum, toLower)
 import Data.List (foldl')
 import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe)
-import Data.Monoid ((<>))
+import Data.Monoid (Monoid (..), (<>))
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 
@@ -50,47 +50,48 @@ isFtplugin _ = False
 vimScriptToList :: VimScript -> [(Place, [T.Text])]
 vimScriptToList (VimScript x) = HM.toList x
 
-(+++) :: VimScript -> VimScript -> VimScript
-(+++) (VimScript x) (VimScript y)
-  | HM.null x = VimScript y
-  | HM.null y = VimScript x
-  | otherwise = VimScript (HM.unionWith concat' x y)
-  where
-    concat' a [] = a
-    concat' [] b = b
-    concat' a b = a ++ [""] ++ b
+instance Monoid VimScript where
+  mempty = VimScript HM.empty
+  mappend (VimScript x) (VimScript y)
+    | HM.null x = VimScript y
+    | HM.null y = VimScript x
+    | otherwise = VimScript (HM.unionWith concat' x y)
+    where
+      concat' a [] = a
+      concat' [] b = b
+      concat' a b = a <> [""] <> b
 
 gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
                      $ beforeScript setting
-                   +++ gatherBeforeAfterScript (S.plugin setting)
-                   +++ dependOnScript (S.plugin setting)
-                   +++ dependedByScript (S.plugin setting)
-                   +++ predefinedMappings (S.plugin setting)
-                   +++ gatherMapmodes (S.plugin setting)
-                   +++ gatherFuncUndefined setting
-                   +++ pluginLoader
-                   +++ mappingLoader
-                   +++ commandLoader
-                   +++ foldl' (+++) (VimScript HM.empty) (map pluginConfig (S.plugin setting))
-                   +++ filetypeLoader setting
-                   +++ gatherInsertEnter setting
-                   +++ filetypeScript (S.filetypeScript setting)
-                   +++ filetypeDetect (S.filetypeDetect setting)
-                   +++ afterScript setting
+                    <> gatherBeforeAfterScript (S.plugin setting)
+                    <> dependOnScript (S.plugin setting)
+                    <> dependedByScript (S.plugin setting)
+                    <> predefinedMappings (S.plugin setting)
+                    <> gatherMapmodes (S.plugin setting)
+                    <> gatherFuncUndefined setting
+                    <> pluginLoader
+                    <> mappingLoader
+                    <> commandLoader
+                    <> foldl' (<>) mempty (map pluginConfig (S.plugin setting))
+                    <> filetypeLoader setting
+                    <> gatherInsertEnter setting
+                    <> filetypeScript (S.filetypeScript setting)
+                    <> filetypeDetect (S.filetypeDetect setting)
+                    <> afterScript setting
 
 gatherBeforeAfterScript :: [P.Plugin] -> VimScript
-gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empty, HM.empty)
+gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
   where
     insertAuNameMap :: (VimScript, HM.HashMap T.Text T.Text) -> VimScript
     insertAuNameMap (vs, hm) = VimScript (HM.singleton (Autoload "") $
           [ "let s:autoload = {" ]
        <> [ "      \\ " <> singleQuote k <> ": " <> singleQuote a <> "," | (k, a) <- HM.toList hm ]
-       <> [ "      \\ }" ]) +++ vs
+       <> [ "      \\ }" ]) <> vs
     gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap T.Text T.Text) -> (VimScript, HM.HashMap T.Text T.Text)
     gatherScripts (p:ps) (vs, hm)
             | null (P.beforeScript p) && null (P.afterScript p) = gatherScripts ps (vs, hm)
-            | otherwise = gatherScripts ps (vs +++ vs', HM.insert name hchar hm)
+            | otherwise = gatherScripts ps (vs <> vs', HM.insert name hchar hm)
       where
         name = T.filter isAlphaNum (T.toLower (P.rtpName p))
         hchar | null (loadScript p) = maybe "_" T.singleton $ getHeadChar $ P.rtpName p
@@ -98,7 +99,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
         au = Autoload hchar
         vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.beforeScript p)
-                                         ++ wrapFunction (funcname "after") (P.afterScript p)
+                                         <> wrapFunction (funcname "after") (P.afterScript p)
     gatherScripts [] (vs, hm) = (vs, hm)
 
 addAutoloadNames :: VimScript -> VimScript
@@ -106,52 +107,48 @@ addAutoloadNames h@(VimScript hm)
   = VimScript (HM.singleton (Autoload "")
       [ "let s:autoloads = { " <> T.intercalate ", " ((\x -> singleQuote x <> ": 1")
                                     <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
-  +++ h
+   <> h
 
 dependOnScript :: [P.Plugin] -> VimScript
 dependOnScript plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:dependon = {" ]
-   ++ [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
+   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
                      T.intercalate ", " [ singleQuote q | q <- P.dependon p ]
                   <> " ]," | p <- plg, not (null (P.dependon p)) ]
-   ++ [ "      \\ }" ])
+   <> [ "      \\ }" ])
 
 dependedByScript :: [P.Plugin] -> VimScript
 dependedByScript plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:dependedby = {" ]
-   ++ [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
+   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
                      T.intercalate ", " [ singleQuote q | q <- P.dependedby p ]
                   <> " ]," | p <- plg, not (null (P.dependedby p)) ]
-   ++ [ "      \\ }" ])
+   <> [ "      \\ }" ])
 
 predefinedMappings :: [P.Plugin] -> VimScript
 predefinedMappings plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:mappings = {" ]
-   ++ [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
+   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
                      T.intercalate ", " [ singleQuote q | q <- P.mappings p ]
                   <> " ]," | p <- plg, not (null (P.mappings p)) ]
-   ++ [ "      \\ }" ])
+   <> [ "      \\ }" ])
 
 gatherMapmodes :: [P.Plugin] -> VimScript
 gatherMapmodes plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:mapmodes = {" ]
-   ++ [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
+   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
                      T.intercalate ", " [ singleQuote q | q <- P.mapmodes p ]
                   <> " ]," | p <- plg, not (null (P.mapmodes p)) ]
-   ++ [ "      \\ }" ])
+   <> [ "      \\ }" ])
 
 pluginConfig :: P.Plugin -> VimScript
 pluginConfig plg
     = VimScript (HM.singleton Plugin $ wrapInfo $
-        wrapEnable plg $ mapleader
-                      <> gatherCommand plg
-                      <> gatherMapping plg
-                      <> P.script plg
-                      <> loadScript plg)
+        wrapEnable plg $ mapleader <> gatherCommand plg <> gatherMapping plg <> P.script plg <> loadScript plg)
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " <> P.name plg) : str
@@ -201,7 +198,7 @@ afterScript setting = VimScript (HM.singleton Plugin (S.afterScript setting))
 
 filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting
-  = HM.foldrWithKey f (VimScript HM.empty) (filetypeLoadPlugins (S.plugin setting) HM.empty)
+  = HM.foldrWithKey f mempty (filetypeLoadPlugins (S.plugin setting) HM.empty)
   where
     f ft plg val =
       case getHeadChar ft of
@@ -209,18 +206,18 @@ filetypeLoader setting
            Just c ->
              let funcname = "miv#" <> T.singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
                  in val
-                  +++ VimScript (HM.singleton (Autoload (T.singleton c))
+                  <> VimScript (HM.singleton (Autoload (T.singleton c))
                        (("function! " <> funcname <> "() abort")
                        : "  setl ft="
                        :  concat [wrapEnable b
                        [ "  call miv#load(" <> singleQuote (P.rtpName b) <> ")"] | b <- plg]
-                    ++ [ "  autocmd! MivFileTypeLoad" <> ft
+                    <> [ "  autocmd! MivFileTypeLoad" <> ft
                        , "  augroup! MivFileTypeLoad" <> ft
                        , "  setl ft=" <> ft
                        , "  silent! doautocmd FileType " <> ft
                        , "endfunction"
                        ]))
-                  +++ VimScript (HM.singleton Plugin
+                  <> VimScript (HM.singleton Plugin
                        [ "augroup MivFileTypeLoad" <> ft
                        , "  autocmd!"
                        , "  autocmd FileType " <> ft <> " call " <> funcname <> "()"
@@ -241,7 +238,7 @@ gatherInsertEnter setting
         f plgs = "\" InsertEnter"
                : "function! s:insertEnter() abort"
              : [ "  call miv#load(" <> singleQuote (P.rtpName p) <> ")" | p <- plgs ]
-            ++ [ "  autocmd! MivInsertEnter"
+            <> [ "  autocmd! MivInsertEnter"
                , "  augroup! MivInsertEnter"
                , "  silent! doautocmd InsertEnter"
                , "endfunction"
@@ -263,7 +260,7 @@ gatherFuncUndefined setting
                [ "  if f =~# " <> singleQuote q
                , "    call miv#load(" <> singleQuote (P.rtpName p) <> ")"
                , "  endif" ] | (p, q) <- concatMap (\q -> map ((,) q) (P.functions q)) plgs]
-            ++ [ "endfunction"
+            <> [ "endfunction"
                , ""
                , "augroup MivFuncUndefined"
                , "  autocmd!"
@@ -278,7 +275,7 @@ wrapEnable plg str
   | P.enable plg == "0" = []
   | otherwise = (indent <> "if " <> P.enable plg)
                            : map ("  "<>) str
-                           ++ [indent <> "endif"]
+                           <> [indent <> "endif"]
   where indent = T.takeWhile (==' ') (head str)
 
 singleQuote :: T.Text -> T.Text
@@ -286,14 +283,14 @@ singleQuote str = "'" <> str <> "'"
 
 filetypeScript :: HM.HashMap T.Text [T.Text] -> VimScript
 filetypeScript =
-  HM.foldrWithKey (\ft scr val -> val +++ VimScript (HM.singleton (Ftplugin ft) scr)) (VimScript HM.empty)
+  HM.foldrWithKey (\ft scr val -> val <> VimScript (HM.singleton (Ftplugin ft) scr)) mempty
 
 filetypeDetect :: HM.HashMap T.Text T.Text -> VimScript
 filetypeDetect =
-  mkVimScript . HM.foldrWithKey (\ext ft val -> val ++ [f ext ft]) []
+  mkVimScript . HM.foldrWithKey (\ext ft val -> val <> [f ext ft]) []
     where f ext ft = "  autocmd BufNewFile,BufReadPost *." <> ext <> " setlocal filetype=" <> ft
-          mkVimScript [] = VimScript HM.empty
-          mkVimScript xs = VimScript (HM.singleton Plugin (p ++ xs ++ a))
+          mkVimScript [] = mempty
+          mkVimScript xs = VimScript (HM.singleton Plugin (p <> xs <> a))
           p = ["\" Filetype detection", "augroup MivFileTypeDetect", "  autocmd!"]
           a = ["augroup END"]
 
@@ -301,7 +298,7 @@ wrapFunction :: T.Text -> [T.Text] -> [T.Text]
 wrapFunction funcname script =
      ["function! " <> funcname <> "() abort"]
   <> map ("  "<>) script
-  ++ ["endfunction"]
+  <> ["endfunction"]
 
 getHeadChar :: T.Text -> Maybe Char
 getHeadChar xs
