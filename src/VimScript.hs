@@ -181,11 +181,11 @@ gatherMapping plg
             = [\mode ->
                M.defaultMapping
                   { M.mapName    = c
-                  , M.mapRepText = escape mode ++ ":<C-u>call miv#mapping("
-                        ++ singleQuote' (show plg) ++ ", "
-                        ++ singleQuote' c ++ ", "
-                        ++ singleQuote' (show mode) ++ ")<CR>"
-                  , M.mapMode    = mode } | c <- map T.unpack $ P.mappings plg]
+                  , M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
+                        <> singleQuote (P.rtpName plg) <> ", "
+                        <> singleQuote c <> ", "
+                        <> singleQuote (T.pack $ show mode) <> ")<CR>"
+                  , M.mapMode    = mode } | c <- P.mappings plg]
           escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
           modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map (read . T.unpack) (P.mapmodes plg)
           in concat [map (T.pack . show . f) modes | f <- genMapping]
@@ -281,9 +281,6 @@ wrapEnable plg str
 
 singleQuote :: T.Text -> T.Text
 singleQuote str = "'" <> str <> "'"
-
-singleQuote' :: String -> String
-singleQuote' str = "'" ++ str ++ "'"
 
 filetypeScript :: HM.HashMap T.Text [T.Text] -> VimScript
 filetypeScript =

@@ -1,4 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Mapping where
+
+import qualified Data.Text as T
 
 import Mode
 
@@ -17,8 +20,8 @@ instance Show MapSilent where
   show MapNoSilent = ""
 
 data Mapping =
-     Mapping { mapName    :: String
-             , mapRepText :: String
+     Mapping { mapName    :: T.Text
+             , mapRepText :: T.Text
              , mapUnique  :: MapUnique
              , mapSilent  :: MapSilent
              , mapMode    :: Mode
@@ -29,8 +32,8 @@ instance Show Mapping where
           [ show (mapMode m) ++ "noremap"
           , show (mapUnique m)
          ++ show (mapSilent m)
-          , mapName m
-          , mapRepText m
+          , T.unpack (mapName m)
+          , T.unpack (mapRepText m)
           ])
 
 defaultMapping :: Mapping
