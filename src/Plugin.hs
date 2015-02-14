@@ -1,47 +1,46 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Plugin where
 
-import Data.List (isSuffixOf, isPrefixOf)
 import Data.Maybe (fromMaybe)
+import qualified Data.Text as T
 
 import qualified PluginI as PI
 
 data Plugin =
-     Plugin { name          :: String
-            , filetypes     :: [String]
-            , commands      :: [String]
-            , functions     :: [String]
-            , mappings      :: [String]
-            , mapmodes      :: [String]
+     Plugin { name          :: T.Text
+            , filetypes     :: [T.Text]
+            , commands      :: [T.Text]
+            , functions     :: [T.Text]
+            , mappings      :: [T.Text]
+            , mapmodes      :: [T.Text]
             , insert        :: Bool
-            , enable        :: String
+            , enable        :: T.Text
             , sync          :: Bool
-            , mapleader     :: String
-            , script        :: [String]
-            , afterScript   :: [String]
-            , beforeScript  :: [String]
-            , dependon      :: [String]
-            , dependedby    :: [String]
-            , loadafter     :: [String]
-            , loadbefore    :: [String]
+            , mapleader     :: T.Text
+            , script        :: [T.Text]
+            , afterScript   :: [T.Text]
+            , beforeScript  :: [T.Text]
+            , dependon      :: [T.Text]
+            , dependedby    :: [T.Text]
+            , loadafter     :: [T.Text]
+            , loadbefore    :: [T.Text]
             , submodule     :: Bool
      } deriving (Eq, Ord)
 
 instance Show Plugin where
-  show = rtpName
+  show = T.unpack . rtpName
 
-rtpName :: Plugin -> String
+rtpName :: Plugin -> T.Text
 rtpName plg = subst (name plg)
-  where subst :: String -> String
-        subst ('/':s) = subst s
-        subst s | '/' `elem` s = subst (dropWhile (/='/') s)
-                | ".vim" `isSuffixOf` s = take (length s - 4) s
-                | "-vim" `isSuffixOf` s = take (length s - 4) s
-                | "vim-" `isPrefixOf` s = drop 4 s
-                | otherwise = filter (`notElem`"!?;:/<>()[]{}|~'\"") s
+  where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
+                | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
+                | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
+                | "vim-" `T.isPrefixOf` s = T.drop 4 s
+                | otherwise = T.filter (`notElem`"!?;:/<>()[]{}|~'\"") s
 
 toPlugin :: String -> PI.PluginI -> Plugin
 toPlugin n p
-  = Plugin { name = n
+  = Plugin { name = T.pack n
            , filetypes    = maybe id (:) (PI.filetype p) (fromMaybe [] (PI.filetypes p))
            , commands     = maybe id (:) (PI.command p) (fromMaybe [] (PI.commands p))
            , functions    = maybe id (:) (PI.function p) (fromMaybe [] (PI.functions p))
@@ -51,9 +50,9 @@ toPlugin n p
            , sync         = fromMaybe True (PI.sync p)
            , insert       = fromMaybe False (PI.insert p)
            , mapleader    = fromMaybe "" (PI.mapleader p)
-           , script       = lines $ fromMaybe "" (PI.script p)
-           , afterScript  = lines $ fromMaybe "" (PI.afterScript p)
-           , beforeScript = lines $ fromMaybe "" (PI.beforeScript p)
+           , script       = T.lines $ fromMaybe "" (PI.script p)
+           , afterScript  = T.lines $ fromMaybe "" (PI.afterScript p)
+           , beforeScript = T.lines $ fromMaybe "" (PI.beforeScript p)
            , dependon     = fromMaybe [] (PI.dependon p)
            , dependedby   = fromMaybe [] (PI.dependedby p)
            , loadafter    = fromMaybe [] (PI.loadafter p)
@@ -63,16 +62,16 @@ toPlugin n p
 
 defaultPlugin :: Plugin
 defaultPlugin =
-  Plugin { name          = []
+  Plugin { name          = ""
          , filetypes     = []
          , commands      = []
          , functions     = []
          , mappings      = []
          , mapmodes      = []
          , insert        = False
-         , enable        = []
+         , enable        = ""
          , sync          = False
-         , mapleader     = []
+         , mapleader     = ""
          , script        = []
          , afterScript   = []
          , beforeScript  = []

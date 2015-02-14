@@ -5,6 +5,7 @@ import Prelude hiding (readFile)
 import Data.Functor ((<$>))
 import Data.List (foldl', nub, isPrefixOf)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import Data.Time (getCurrentTime)
@@ -164,19 +165,19 @@ instance Show Update where
 
 updatePlugin :: Update -> Maybe [String] -> S.Setting -> IO ()
 updatePlugin update plugins setting = do
-  let installedPlugins = map P.rtpName (S.plugin setting)
+  let installedPlugins = map show (S.plugin setting)
       unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let specified p = P.rtpName p `elem` fromMaybe [] plugins || plugins == Just []
+  let specified p = show p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (S.plugin setting)
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
   result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
   if snd result /= ExitSuccess
-     then putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
+     then putStrLn "Error:" >> T.putStrLn ("  " <> P.name (fst result))
      else putStrLn ("Success in " ++ show update ++ ".")
        >> generatePluginCode setting
        >> generateHelpTags setting
@@ -192,40 +193,40 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir ++ "miv/doc/"
   cleanAndCreateDirectory docdir
-  forM_ (map (\p -> dir ++ P.rtpName p ++ "/doc/") (S.plugin setting))
+  forM_ (map (\p -> dir ++ show p ++ "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
-              $ system $ unwords ["cd", singleQuote path,
-                                  "&& cp *", singleQuote docdir, "2>/dev/null"]
+              $ system $ unwords ["cd", singleQuote' path,
+                                  "&& cp *", singleQuote' docdir, "2>/dev/null"]
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " ++ docdir ++ "' -c quit"
   putStrLn "Success in processing helptags."
 
 lastUpdatePlugin :: String -> P.Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir ++ P.rtpName plugin ++ "/.git"
+  let path = dir ++ show plugin ++ "/.git"
   doesDirectoryExist path
     >>= \exists -> if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> String -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
 updateOnePlugin time dir update specified (_, _) plugin = do
-  let path = dir ++ P.rtpName plugin
-      repo = vimScriptRepo (P.name plugin)
+  let path = dir ++ show plugin
+      repo = vimScriptRepo (T.unpack $ P.name plugin)
       cloneCommand = if P.submodule plugin then cloneSubmodule else clone
       pullCommand = if P.submodule plugin then pullSubmodule else pull
   doesDirectoryExist path
     >>= \exists ->
       if not exists
-         then putStrLn ("Installing: " ++ P.name plugin)
+         then T.putStrLn ("Installing: " <> P.name plugin)
               >> (,) plugin <$> cloneCommand repo path
          else if update == Install || not (P.sync plugin)
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
                       if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                         then putStrLn ("Outdated: " ++ P.name plugin)
+                         then T.putStrLn ("Outdated: " <> P.name plugin)
                               >> return (plugin, ExitSuccess)
-                         else putStrLn ("Pulling: " ++ P.name plugin)
+                         else T.putStrLn ("Pulling: " <> P.name plugin)
                               >> (,) plugin <$> pullCommand path
 
 vimScriptRepo :: String -> String
@@ -234,7 +235,7 @@ vimScriptRepo name | '/' `elem` name = name
 
 listPlugin :: S.Setting -> IO ()
 listPlugin setting = mapM_ putStrLn $ space $ map format $ S.plugin setting
-  where format p = [P.rtpName p, P.name p, gitUrl (vimScriptRepo (P.name p))]
+  where format p = [show p, T.unpack $ P.name p, gitUrl (vimScriptRepo (T.unpack $ P.name p))]
         space xs =
           let max0 = maximum (map (length . (!!0)) xs) + 1
               max1 = maximum (map (length . (!!1)) xs) + 1
@@ -246,7 +247,7 @@ cleanDirectory setting = do
   dir <- pluginDirectory
   createDirectoryIfMissing True dir
   cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map P.rtpName (S.plugin setting)
+  let paths = "." : ".." : "miv" : map show (S.plugin setting)
       delpath' = [ dir ++ d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
@@ -261,18 +262,17 @@ cleanDirectory setting = do
                       (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
      else putStrLn "Clean."
 
-saveScript :: (String, Place, [String]) -> IO ()
+saveScript :: (String, Place, [T.Text]) -> IO ()
 saveScript (dir, place, code) =
   let isftplugin = isFtplugin place
       relname = show place
       name = dir ++ relname 
-      isallascii = all (all (<='~')) code
-      (+-+) = T.append in
+      isallascii = all (T.all (<='~')) code in
   getCurrentTime >>= \time ->
   T.writeFile name $ T.unlines $
-            [ "\" Filename: " +-+ T.pack relname
-            , "\" Last Change: " +-+ T.pack (show time)
-            , "\" Generated by miv " +-+ T.pack (showVersion version)
+            [ "\" Filename: " <> T.pack relname
+            , "\" Last Change: " <> T.pack (show time)
+            , "\" Generated by miv " <> T.pack (showVersion version)
             , "" ]
          ++ (if isallascii then [] else [ "scriptencoding utf-8", "" ])
          ++ (if isftplugin then [ "if exists('b:did_ftplugin')"
@@ -283,7 +283,7 @@ saveScript (dir, place, code) =
          ++ [ "let s:save_cpo = &cpo"
             , "set cpo&vim"
             , "" ]
-         ++ map T.pack code
+         ++ code
          ++ [ ""
             , "let &cpo = s:save_cpo"
             , "unlet s:save_cpo" ]
@@ -305,26 +305,26 @@ eachPlugin command setting = do
   dir <- pluginDirectory
   result <- foldM (eachOnePlugin command dir) (P.defaultPlugin, ExitSuccess) (S.plugin setting)
   when (snd result /= ExitSuccess)
-     $ putStrLn "Error:" >> putStrLn ("  " ++ P.name (fst result))
+     $ putStrLn "Error:" >> T.putStrLn ("  " <> P.name (fst result))
 
 eachOnePlugin :: String -> String -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 eachOnePlugin command dir (_, _) plugin = do
-  let path = dir ++ P.rtpName plugin
+  let path = dir ++ show plugin
   doesDirectoryExist path
     >>= \exists ->
       if not exists
          then return (plugin, ExitSuccess)
-         else (,) plugin <$> system (unwords ["cd", singleQuote path, "&&", command])
+         else (,) plugin <$> system (unwords ["cd", singleQuote' path, "&&", command])
 
 eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [String] -> S.Setting -> IO ()
 pathPlugin plugins setting = do
-  let ps = filter (\p -> P.rtpName p `elem` plugins || null plugins) (S.plugin setting)
+  let ps = filter (\p -> show p `elem` plugins || null plugins) (S.plugin setting)
   dir <- pluginDirectory
-  forM_ ps (\plugin -> putStrLn $ dir ++ P.rtpName plugin)
+  forM_ ps (\plugin -> putStrLn $ dir ++ show plugin)
 
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage
