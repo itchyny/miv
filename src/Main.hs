@@ -1,21 +1,21 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Prelude hiding (readFile)
+import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr)
 import Data.Functor ((<$>))
-import Data.List (foldl', nub, isPrefixOf)
+import Data.List (foldl', nub)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import Data.Text (unwords, unlines)
+import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import System.Directory (createDirectoryIfMissing, doesDirectoryExist, doesFileExist, getDirectoryContents, getHomeDirectory, removeDirectoryRecursive, removeFile)
-import System.Environment (getArgs)
+import qualified System.Directory as SD
+import qualified System.Environment as SE
 import System.Exit (ExitCode(..))
 import System.Info (os)
 import System.IO (hFlush, stdout)
-import System.Process (system)
 import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
 import Paths_miv (version)
 
@@ -28,11 +28,35 @@ import qualified ShowText as ST
 nameversion :: T.Text
 nameversion = "miv " <> T.pack (showVersion version)
 
-expandHomeDirectory :: FilePath -> IO FilePath
-expandHomeDirectory ('~':path) = fmap (++path) getHomeDirectory
-expandHomeDirectory path = return path
+createDirectoryIfMissing :: T.Text -> IO ()
+createDirectoryIfMissing = SD.createDirectoryIfMissing True . T.unpack
 
-getSettingFile :: IO (Maybe FilePath)
+doesDirectoryExist :: T.Text -> IO Bool
+doesDirectoryExist = SD.doesDirectoryExist . T.unpack
+
+doesFileExist :: T.Text -> IO Bool
+doesFileExist = SD.doesFileExist . T.unpack
+
+getDirectoryContents :: T.Text -> IO [T.Text]
+getDirectoryContents = fmap (map T.pack) . SD.getDirectoryContents . T.unpack
+
+removeDirectoryRecursive :: T.Text -> IO ()
+removeDirectoryRecursive = SD.removeDirectoryRecursive . T.unpack
+
+removeFile :: T.Text -> IO ()
+removeFile = SD.removeFile . T.unpack
+
+getHomeDirectory :: IO T.Text
+getHomeDirectory = fmap T.pack SD.getHomeDirectory
+
+getArgs :: IO [T.Text]
+getArgs = fmap (map T.pack) SE.getArgs
+
+expandHomeDirectory :: T.Text -> IO T.Text
+expandHomeDirectory path | T.take 1 path == "~" = fmap (<>T.tail path) getHomeDirectory
+                         | otherwise = return path
+
+getSettingFile :: IO (Maybe T.Text)
 getSettingFile
   = listToMaybe <$> filterM ((=<<) doesFileExist . expandHomeDirectory)
        [ "~/.vimrc.yaml"
@@ -48,7 +72,7 @@ getSettingFile
        ]
 
 getSetting :: IO (Maybe S.Setting)
-getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= S.decodeSetting
+getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= S.decodeSetting . T.unpack
 
 getSettingWithError :: IO S.Setting
 getSettingWithError =
@@ -61,7 +85,7 @@ getSettingWithError =
                   Nothing -> error "Parse error"
                   Just setting -> return setting
 
-pluginDirectory :: IO String
+pluginDirectory :: IO T.Text
 pluginDirectory = do
   dir <- expandHomeDirectory "~/.vim/miv/"
   windir <- expandHomeDirectory "~/vimfiles/miv/"
@@ -70,18 +94,18 @@ pluginDirectory = do
 
 createPluginDirectory :: IO ()
 createPluginDirectory =
-  createDirectoryIfMissing True =<< pluginDirectory
+  createDirectoryIfMissing =<< pluginDirectory
 
 printUsage :: IO ()
-printUsage = mapM_ T.putStrLn usage
+printUsage = mapM_ putStrLn usage
 
 commandHelp :: IO ()
-commandHelp = mapM_ (T.putStrLn . ST.show) arguments
+commandHelp = mapM_ (putStrLn . ST.show) arguments
 
-data Argument = Argument (String, String)
+data Argument = Argument (T.Text, T.Text)
               deriving (Eq, Ord)
 instance ST.ShowText Argument where
-  show (Argument (x, y)) = T.pack x <> T.replicate (10 - length x) " " <> T.pack y
+  show (Argument (x, y)) = x <> T.replicate (10 - T.length x) " " <> y
 
 arguments :: [Argument]
 arguments = map Argument
@@ -100,8 +124,8 @@ arguments = map Argument
           ]
 
 usage :: [T.Text]
-usage = nameversion :
-        [ ""
+usage = [ nameversion
+        , ""
         , "Usage: miv COMMAND"
         , ""
         , "Commands:"
@@ -139,128 +163,129 @@ levenshtein a b = last $ foldl' f [0..length a] b
     f xs@(x:xs') c = scanl (g c) (x + 1) (zip3 a xs xs')
     g c z (d, x, y) = minimum [y + 1, z + 1, x + fromEnum (c /= d)]
 
-suggestCommand :: String -> IO ()
+suggestCommand :: T.Text -> IO ()
 suggestCommand arg = do
-  let commands = [(levenshtein arg x, Argument (x, y)) | (Argument (x, y)) <- arguments]
+  let commands = [(levenshtein (T.unpack arg) (T.unpack x), Argument (x, y)) | (Argument (x, y)) <- arguments]
       mindist = fst (minimum commands)
       mincommands = [y | (x, y) <- commands, x == mindist]
-      prefixcommands = [y | y@(Argument (x, _)) <- arguments, arg `isPrefixOf` x || x `isPrefixOf` arg]
-      containedcommands = [y | y@(Argument (x, _)) <- arguments, length arg > 1 && arg `isContainedIn` x]
-  putStrLn $ "Unknown command: " ++ arg
+      prefixcommands = [y | y@(Argument (x, _)) <- arguments, arg `T.isPrefixOf` x || x `T.isPrefixOf` arg]
+      containedcommands = [y | y@(Argument (x, _)) <- arguments, T.length arg > 1 && T.unpack arg `isContainedIn` T.unpack x]
+  putStrLn $ "Unknown command: " <> arg
   putStrLn "Probably:"
-  mapM_ (T.putStrLn . ("  "<>) . ST.show) (if null prefixcommands then nub (containedcommands ++ mincommands) else prefixcommands)
+  mapM_ (putStrLn . ("  "<>) . ST.show) (if null prefixcommands then nub (containedcommands ++ mincommands) else prefixcommands)
 
 isContainedIn :: Eq a => [a] -> [a] -> Bool
 isContainedIn xxs@(x:xs) (y:ys) = x == y && xs `isContainedIn` ys || xxs `isContainedIn` ys
 isContainedIn [] _ = True
 isContainedIn _ [] = False
 
-suggestPlugin :: [P.Plugin] -> String -> IO ()
+suggestPlugin :: [P.Plugin] -> T.Text -> IO ()
 suggestPlugin plugin arg = do
-  let plugins = [(levenshtein arg (show p), p) | p <- plugin]
+  let plugins = [(levenshtein (T.unpack arg) (show p), p) | p <- plugin]
       mindist = fst (minimum plugins)
       minplugins = [y | (x, y) <- plugins, x == mindist]
-  putStrLn $ "Unknown plugin: " ++ arg
+  putStrLn $ "Unknown plugin: " <> arg
   putStrLn "Probably:"
-  mapM_ (T.putStrLn . ("  "<>) . ST.show) minplugins
+  mapM_ (putStrLn . ("  "<>) . ST.show) minplugins
 
 data Update = Install | Update deriving Eq
-instance Show Update where
+instance ST.ShowText Update where
   show Install = "installing"
   show Update = "updating"
 
-updatePlugin :: Update -> Maybe [String] -> S.Setting -> IO ()
+updatePlugin :: Update -> Maybe [T.Text] -> S.Setting -> IO ()
 updatePlugin update plugins setting = do
-  let installedPlugins = map show (S.plugin setting)
+  let installedPlugins = map ST.show (S.plugin setting)
       unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let specified p = show p `elem` fromMaybe [] plugins || plugins == Just []
+  let specified p = ST.show p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (S.plugin setting)
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
   result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
   if snd result /= ExitSuccess
-     then putStrLn "Error:" >> T.putStrLn ("  " <> P.name (fst result))
-     else putStrLn ("Success in " ++ show update ++ ".")
+     then putStrLn "Error:" >> putStrLn ("  " <> P.name (fst result))
+     else putStrLn ("Success in " <> ST.show update <> ".")
        >> generatePluginCode setting
        >> generateHelpTags setting
 
-cleanAndCreateDirectory :: String -> IO ()
+cleanAndCreateDirectory :: T.Text -> IO ()
 cleanAndCreateDirectory directory = do
-  createDirectoryIfMissing True directory
-  removeDirectoryRecursive directory
-  createDirectoryIfMissing True directory
+  let dir = directory
+  createDirectoryIfMissing dir
+  removeDirectoryRecursive dir
+  createDirectoryIfMissing dir
 
 generateHelpTags :: S.Setting -> IO ()
 generateHelpTags setting = do
   dir <- pluginDirectory
-  let docdir = dir ++ "miv/doc/"
+  let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  forM_ (map (\p -> dir ++ show p ++ "/doc/") (S.plugin setting))
+  forM_ (map (\p -> dir <> ST.show p <> "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
-              $ system $ unwords ["cd", "'" ++ path ++ "'",
-                                  "&& cp *", "'" ++ docdir ++ "'", "2>/dev/null"]
-  _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " ++ docdir ++ "' -c quit"
+              $ system $ unwords ["cd", "'" <> path <> "'",
+                                  "&& cp *", "'" <> docdir <> "'", "2>/dev/null"]
+  _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
-lastUpdatePlugin :: String -> P.Plugin -> IO Integer
+lastUpdatePlugin :: T.Text -> P.Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir ++ show plugin ++ "/.git"
+  let path = dir <> ST.show plugin <> "/.git"
   doesDirectoryExist path
     >>= \exists -> if exists then lastUpdate path else return 0
 
-updateOnePlugin :: Integer -> String -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+updateOnePlugin :: Integer -> T.Text -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
 updateOnePlugin time dir update specified (_, _) plugin = do
-  let path = dir ++ show plugin
-      repo = vimScriptRepo (T.unpack $ P.name plugin)
+  let path = dir <> ST.show plugin
+      repo = vimScriptRepo (P.name plugin)
       cloneCommand = if P.submodule plugin then cloneSubmodule else clone
       pullCommand = if P.submodule plugin then pullSubmodule else pull
   doesDirectoryExist path
     >>= \exists ->
       if not exists
-         then T.putStrLn ("Installing: " <> P.name plugin)
+         then putStrLn ("Installing: " <> P.name plugin)
               >> (,) plugin <$> cloneCommand repo path
          else if update == Install || not (P.sync plugin)
                  then return (plugin, ExitSuccess)
                  else lastUpdate path >>= \lastUpdateTime ->
                       if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                         then T.putStrLn ("Outdated: " <> P.name plugin)
+                         then putStrLn ("Outdated: " <> P.name plugin)
                               >> return (plugin, ExitSuccess)
-                         else T.putStrLn ("Pulling: " <> P.name plugin)
+                         else putStrLn ("Pulling: " <> P.name plugin)
                               >> (,) plugin <$> pullCommand path
 
-vimScriptRepo :: String -> String
-vimScriptRepo name | '/' `elem` name = name
-                   | otherwise = "vim-scripts/" ++ name
+vimScriptRepo :: T.Text -> T.Text
+vimScriptRepo name | T.any (=='/') name = name
+                   | otherwise = "vim-scripts/" <> name
 
 listPlugin :: S.Setting -> IO ()
 listPlugin setting = mapM_ putStrLn $ space $ map format $ S.plugin setting
-  where format p = [show p, T.unpack $ P.name p, gitUrl (vimScriptRepo (T.unpack $ P.name p))]
+  where format p = [ST.show p, P.name p, gitUrl (vimScriptRepo (P.name p))]
         space xs =
-          let max0 = maximum (map (length . (!!0)) xs) + 1
-              max1 = maximum (map (length . (!!1)) xs) + 1
-              in map (\(as:bs:cs:_) -> as ++ replicate (max0 - length as) ' ' ++ bs ++ replicate (max1 - length bs) ' ' ++ cs) xs
+          let max0 = maximum (map (T.length . (!!0)) xs) + 1
+              max1 = maximum (map (T.length . (!!1)) xs) + 1
+              in map (\(as:bs:cs:_) -> as <> T.replicate (max0 - T.length as) " " <> bs <> T.replicate (max1 - T.length bs) " " <> cs) xs
 
 cleanDirectory :: S.Setting -> IO ()
 cleanDirectory setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  createDirectoryIfMissing True dir
+  createDirectoryIfMissing dir
   cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map show (S.plugin setting)
-      delpath' = [ dir ++ d | d <- cnt, d `notElem` paths ]
+  let paths = "." : ".." : "miv" : map ST.show (S.plugin setting)
+      delpath' = [ dir <> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
-  let delpath = deldir ++ delfile
+  let delpath = deldir <> delfile
   if not (null delpath)
      then putStrLn "Remove:"
-       >> mapM_ (putStrLn . ("  "++)) delpath
+       >> mapM_ (putStrLn . ("  "<>)) delpath
        >> putStr "Really? [y/N] "
        >> hFlush stdout
        >> getChar
@@ -268,14 +293,14 @@ cleanDirectory setting = do
                       (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
      else putStrLn "Clean."
 
-saveScript :: (String, Place, [T.Text]) -> IO ()
+saveScript :: (T.Text, Place, [T.Text]) -> IO ()
 saveScript (dir, place, code) =
   let isftplugin = isFtplugin place
       relname = ST.show place
-      name = dir ++ T.unpack relname 
+      name = T.unpack (dir <> relname)
       isallascii = all (T.all (<='~')) code in
   getZonedTime >>= \time ->
-  T.writeFile name $ T.unlines $
+  writeFile name $ unlines $
             [ "\" Filename: " <> relname
             , "\" Last Change: " <> T.pack (show time)
             , "\" Generated by " <> nameversion
@@ -296,47 +321,47 @@ saveScript (dir, place, code) =
 
 generatePluginCode :: S.Setting -> IO ()
 generatePluginCode setting = do
-  dir <- fmap (++"miv/") pluginDirectory
-  createDirectoryIfMissing True dir
-  cleanAndCreateDirectory (dir ++ "plugin/")
-  cleanAndCreateDirectory (dir ++ "autoload/miv/")
-  cleanAndCreateDirectory (dir ++ "ftplugin/")
+  dir <- fmap (<>"miv/") pluginDirectory
+  createDirectoryIfMissing dir
+  cleanAndCreateDirectory (dir <> "plugin/")
+  cleanAndCreateDirectory (dir <> "autoload/miv/")
+  cleanAndCreateDirectory (dir <> "ftplugin/")
   mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
         (vimScriptToList (gatherScript setting))
-  T.putStrLn "Success in generating Vim scripts of miv."
+  putStrLn "Success in generating Vim scripts of miv."
 
-eachPlugin :: String -> S.Setting -> IO ()
+eachPlugin :: T.Text -> S.Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
   result <- foldM (eachOnePlugin command dir) (P.defaultPlugin, ExitSuccess) (S.plugin setting)
   when (snd result /= ExitSuccess)
-     $ T.putStrLn "Error:" >> T.putStrLn ("  " <> P.name (fst result))
+     $ putStrLn "Error:" >> putStrLn ("  " <> P.name (fst result))
 
-eachOnePlugin :: String -> String -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+eachOnePlugin :: T.Text -> T.Text -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 eachOnePlugin command dir (_, _) plugin = do
-  let path = dir ++ T.unpack (ST.show plugin)
+  let path = dir <> ST.show plugin
   doesDirectoryExist path
     >>= \exists ->
       if not exists
          then return (plugin, ExitSuccess)
-         else (,) plugin <$> system (unwords ["cd", "'" ++ path ++ "'", "&&", command])
+         else (,) plugin <$> system (unwords ["cd", "'" <> path <> "'", "&&", command])
 
 eachHelp :: IO ()
-eachHelp = mapM_ T.putStrLn [ "Specify command:", "  miv each [command]" ]
+eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
-pathPlugin :: [String] -> S.Setting -> IO ()
+pathPlugin :: [T.Text] -> S.Setting -> IO ()
 pathPlugin plugins setting = do
-  let ps = filter (\p -> show p `elem` plugins || null plugins) (S.plugin setting)
+  let ps = filter (\p -> ST.show p `elem` plugins || null plugins) (S.plugin setting)
   dir <- pluginDirectory
-  forM_ ps (\plugin -> putStrLn $ dir ++ show plugin)
+  forM_ ps (\plugin -> putStrLn $ dir <> ST.show plugin)
 
-mainProgram :: [String] -> IO ()
+mainProgram :: [T.Text] -> IO ()
 mainProgram [] = printUsage
-mainProgram ['-':arg] = mainProgram [arg]
+mainProgram [arg] | T.take 1 arg == "-" = mainProgram [T.tail arg]
 mainProgram ["help"] = printUsage
-mainProgram ["version"] = T.putStrLn nameversion
+mainProgram ["version"] = putStrLn nameversion
 mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
 mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
 mainProgram ["update!"] = getSettingWithError >>= updatePlugin Update (Just [])
@@ -345,7 +370,7 @@ mainProgram ["each"] = eachHelp
 mainProgram ["list"] = getSettingWithError >>= listPlugin
 mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
-mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "++))
+mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "<>))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
 mainProgram ["path"] = getSettingWithError >>= pathPlugin []
@@ -354,7 +379,7 @@ mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Jus
 mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
 mainProgram ("each":args) = getSettingWithError >>= eachPlugin (unwords args)
 mainProgram ("path":args) = getSettingWithError >>= pathPlugin args
-mainProgram (('-':arg):args) = mainProgram (arg:args)
+mainProgram (arg:args) | T.take 1 arg == "-" = mainProgram (T.tail arg:args)
 mainProgram _ = printUsage
 
 main :: IO ()
