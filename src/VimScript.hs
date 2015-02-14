@@ -84,7 +84,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
   where
     insertAuNameMap :: (VimScript, HM.HashMap T.Text T.Text) -> VimScript
     insertAuNameMap (vs, hm) = VimScript (HM.singleton (Autoload "") $
-          [ "let s:c = {" ]
+          [ "let s:autoload = {" ]
        <> [ "      \\ " <> singleQuote k <> ": " <> singleQuote a <> "," | (k, a) <- HM.toList hm ]
        <> [ "      \\ }" ]) +++ vs
     gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap T.Text T.Text) -> (VimScript, HM.HashMap T.Text T.Text)
@@ -104,7 +104,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
 addAutoloadNames :: VimScript -> VimScript
 addAutoloadNames h@(VimScript hm)
   = VimScript (HM.singleton (Autoload "")
-      [ "let s:au = { " <> T.intercalate ", " ((\x -> singleQuote x <> ": 1")
+      [ "let s:autoloads = { " <> T.intercalate ", " ((\x -> singleQuote x <> ": 1")
                                     <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
   +++ h
 
@@ -356,9 +356,9 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "    endfor"
   , "  endfor"
   , "  let name = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
-  , "  let au = has_key(s:c, name) && get(s:au, s:c[name])"
+  , "  let au = has_key(s:autoload, name) && get(s:autoloads, s:autoload[name])"
   , "  if au"
-  , "    call miv#{s:c[name]}#before_{name}()"
+  , "    call miv#{s:autoload[name]}#before_{name}()"
   , "  endif"
   , "  let newrtp = s:mivpath . a:name . '/'"
   , "  if !isdirectory(newrtp)"
@@ -380,7 +380,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "    endfor"
   , "  endfor"
   , "  if au"
-  , "    call miv#{s:c[name]}#after_{name}()"
+  , "    call miv#{s:autoload[name]}#after_{name}()"
   , "  endif"
   , "  for n in get(s:dependedby, a:name, [])"
   , "    call miv#load(n)"
