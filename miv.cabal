@@ -13,7 +13,6 @@ executable miv
   main-is:              Main.hs
   other-modules:        PluginI
                       , Plugin
-                      , Config
                       , SettingI
                       , Setting
                       , Mode

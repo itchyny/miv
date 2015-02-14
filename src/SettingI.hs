@@ -7,11 +7,9 @@ import Data.HashMap.Lazy
 import qualified Data.Text as T
 
 import PluginI
-import Config
 
 data SettingI =
      SettingI { plugin         :: Maybe (HashMap String PluginI)
-              , config         :: Maybe Config
               , filetypeScript :: Maybe (HashMap T.Text T.Text)
               , beforeScript   :: Maybe T.Text
               , afterScript    :: Maybe T.Text

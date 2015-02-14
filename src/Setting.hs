@@ -9,12 +9,10 @@ import Data.Function (on)
 import qualified Data.Text as T
 
 import qualified Plugin as P
-import Config
 import qualified SettingI as SI
 
 data Setting =
      Setting { plugin         :: [P.Plugin]
-             , config         :: Maybe Config
              , filetypeScript :: HM.HashMap T.Text [T.Text]
              , beforeScript   :: [T.Text]
              , afterScript    :: [T.Text]
@@ -27,7 +25,6 @@ decodeSetting = fmap (fmap toSetting) . Y.decodeFile
 toSetting :: SI.SettingI -> Setting
 toSetting s
   = Setting { plugin = sortWith P.name $ maybe [] (HM.foldlWithKey' (\a k v -> P.toPlugin k v : a) []) (SI.plugin s)
-            , config = SI.config s
             , filetypeScript = maybe HM.empty (HM.map T.lines) (SI.filetypeScript s)
             , beforeScript = T.lines $ fromMaybe "" (SI.beforeScript s)
             , afterScript = T.lines $ fromMaybe "" (SI.afterScript s)
