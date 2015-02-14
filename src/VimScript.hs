@@ -6,7 +6,7 @@ import qualified Data.HashMap.Lazy as HM
 import Data.Char (isAlpha, isAlphaNum, toLower)
 import Data.List (foldl')
 import Data.Functor ((<$>))
-import Data.Maybe (mapMaybe, fromMaybe)
+import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
 import qualified Data.Text as T
 import GHC.Generics (Generic)
@@ -80,22 +80,21 @@ gatherScript setting = addAutoloadNames
 gatherBeforeAfterScript :: [P.Plugin] -> VimScript
 gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empty, HM.empty)
   where
-    insertAuNameMap :: (VimScript, HM.HashMap String Char) -> VimScript
+    insertAuNameMap :: (VimScript, HM.HashMap T.Text T.Text) -> VimScript
     insertAuNameMap (vs, hm) = VimScript (HM.singleton (Autoload "") $
           [ "let s:c = {" ]
-       <> [ "      \\ " <> singleQuote (T.pack k) <> ": " <> singleQuote (T.pack [a]) <> "," | (k, a) <- HM.toList hm ]
+       <> [ "      \\ " <> singleQuote k <> ": " <> singleQuote a <> "," | (k, a) <- HM.toList hm ]
        ++ [ "      \\ }" ]) +++ vs
-    gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap String Char) -> (VimScript, HM.HashMap String Char)
+    gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap T.Text T.Text) -> (VimScript, HM.HashMap T.Text T.Text)
     gatherScripts (p:ps) (vs, hm)
             | null (P.beforeScript p) && null (P.afterScript p) = gatherScripts ps (vs, hm)
             | otherwise = gatherScripts ps (vs +++ vs', HM.insert name hchar hm)
       where
-        rtpname = show p
-        name = filter isAlphaNum (map toLower rtpname)
-        hchar | null (loadScript p) = getHeadChar' (P.rtpName p)
-              | otherwise = '_'
-        funcname str = "miv#" <> T.singleton hchar <> "#" <> str <> "_" <> T.pack name
-        au = Autoload (T.singleton hchar)
+        name = T.filter isAlphaNum (T.toLower (P.rtpName p))
+        hchar | null (loadScript p) = maybe "_" T.singleton $ getHeadChar $ P.rtpName p
+              | otherwise = "_"
+        funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
+        au = Autoload hchar
         vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.beforeScript p)
                                          ++ wrapFunction (funcname "after") (P.afterScript p)
     gatherScripts [] (vs, hm) = (vs, hm)
@@ -309,9 +308,6 @@ getHeadChar :: T.Text -> Maybe Char
 getHeadChar xs
   | T.null xs = Nothing
   | otherwise = let x = T.head xs in if isAlpha x then Just (toLower x) else getHeadChar (T.tail xs)
-
-getHeadChar' :: T.Text -> Char
-getHeadChar' = fromMaybe '_' . getHeadChar
 
 mappingLoader :: VimScript
 mappingLoader = VimScript (HM.singleton (Autoload "")
