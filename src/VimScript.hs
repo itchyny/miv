@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
 module VimScript where
 
+import Prelude hiding (show)
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.Char (isAlpha, isAlphaNum, toLower)
@@ -16,9 +17,10 @@ import qualified Plugin as P
 import qualified Command as C
 import qualified Mapping as M
 import Mode
+import ShowText
 
 data VimScript = VimScript (HM.HashMap Place [T.Text])
-               deriving (Eq, Show)
+               deriving (Eq)
 
 data Place = Plugin
            | Autoload T.Text
@@ -30,11 +32,11 @@ instance Hashable Place where
   hashWithSalt a (Autoload s) = a `hashWithSalt` (1 :: Int) `hashWithSalt` s
   hashWithSalt a (Ftplugin s) = a `hashWithSalt` (2 :: Int) `hashWithSalt` s
 
-instance Show Place where
+instance ShowText Place where
   show Plugin        = "plugin/miv.vim"
   show (Autoload "") = "autoload/miv.vim"
-  show (Autoload s)  = "autoload/miv/" ++ T.unpack s ++ ".vim"
-  show (Ftplugin s)  = "ftplugin/" ++ T.unpack s ++ ".vim"
+  show (Autoload s)  = "autoload/miv/" <> s <> ".vim"
+  show (Ftplugin s)  = "ftplugin/" <> s <> ".vim"
 
 autoloadSubdirName :: Place -> Maybe T.Text
 autoloadSubdirName (Autoload "") = Nothing
@@ -84,7 +86,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (VimScript HM.empt
     insertAuNameMap (vs, hm) = VimScript (HM.singleton (Autoload "") $
           [ "let s:c = {" ]
        <> [ "      \\ " <> singleQuote k <> ": " <> singleQuote a <> "," | (k, a) <- HM.toList hm ]
-       ++ [ "      \\ }" ]) +++ vs
+       <> [ "      \\ }" ]) +++ vs
     gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap T.Text T.Text) -> (VimScript, HM.HashMap T.Text T.Text)
     gatherScripts (p:ps) (vs, hm)
             | null (P.beforeScript p) && null (P.afterScript p) = gatherScripts ps (vs, hm)
@@ -165,7 +167,7 @@ loadScript plg
 gatherCommand :: P.Plugin -> [T.Text]
 gatherCommand plg
   | not (null (P.commands plg))
-    = [T.pack $ show (C.defaultCommand { C.cmdName = c
+    = [show (C.defaultCommand { C.cmdName = c
         , C.cmdRepText = T.unwords ["call miv#command(" <> singleQuote (P.rtpName plg) <> ","
                                , singleQuote c <> ","
                                , singleQuote "<bang>" <> ","
@@ -184,11 +186,11 @@ gatherMapping plg
                   , M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
                         <> singleQuote (P.rtpName plg) <> ", "
                         <> singleQuote c <> ", "
-                        <> singleQuote (T.pack $ show mode) <> ")<CR>"
+                        <> singleQuote (show mode) <> ")<CR>"
                   , M.mapMode    = mode } | c <- P.mappings plg]
           escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
           modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map (read . T.unpack) (P.mapmodes plg)
-          in concat [map (T.pack . show . f) modes | f <- genMapping]
+          in concat [map (show . f) modes | f <- genMapping]
   | otherwise = []
 
 beforeScript :: S.Setting -> VimScript

@@ -17,7 +17,7 @@ data Setting =
              , beforeScript   :: [T.Text]
              , afterScript    :: [T.Text]
              , filetypeDetect :: HM.HashMap T.Text T.Text
-     } deriving (Eq, Show)
+     } deriving (Eq)
 
 decodeSetting :: FilePath -> IO (Maybe Setting)
 decodeSetting = fmap (fmap toSetting) . Y.decodeFile

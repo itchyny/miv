@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command where
 
+import Prelude hiding (show)
+import qualified Prelude as P
 import qualified Data.Text as T
+import Data.Monoid ((<>))
+import ShowText
 
 data CmdBang = CmdBang
              | CmdNoBang
              deriving Eq
 
-instance Show CmdBang where
+instance ShowText CmdBang where
   show CmdBang = "-bang"
   show CmdNoBang = ""
 
@@ -15,7 +19,7 @@ data CmdBar = CmdBar
             | CmdNoBar
             deriving Eq
 
-instance Show CmdBar where
+instance ShowText CmdBar where
   show CmdBar = "-bar"
   show CmdNoBar = ""
 
@@ -23,7 +27,7 @@ data CmdRegister = CmdRegister
                  | CmdNoRegister
                  deriving Eq
 
-instance Show CmdRegister where
+instance ShowText CmdRegister where
   show CmdRegister = "-register"
   show CmdNoRegister = ""
 
@@ -31,7 +35,7 @@ data CmdBuffer = CmdBuffer
                | CmdNoBuffer
                deriving Eq
 
-instance Show CmdBuffer where
+instance ShowText CmdBuffer where
   show CmdBuffer = "-buffer"
   show CmdNoBuffer = ""
 
@@ -42,11 +46,11 @@ data CmdRange = CmdRange
               | CmdNoRange
               deriving Eq
 
-instance Show CmdRange where
+instance ShowText CmdRange where
   show CmdRange = "-range"
   show CmdRangeWhole = "-range=%"
-  show (CmdRangeN n) = "-range=" ++ show n
-  show (CmdRangeCount n) = "-count=" ++ show n
+  show (CmdRangeN n) = "-range=" <> T.pack (P.show n)
+  show (CmdRangeCount n) = "-count=" <> T.pack (P.show n)
   show CmdNoRange = ""
 
 data CmdArg = CmdNonNegArg
@@ -56,7 +60,7 @@ data CmdArg = CmdNonNegArg
             | CmdNoArg
             deriving Eq
 
-instance Show CmdArg where
+instance ShowText CmdArg where
   show CmdNonNegArg = "-nargs=*"
   show CmdZeroOneArg = "-nargs=?"
   show CmdPositiveArg = "-nargs=+"
@@ -66,9 +70,9 @@ instance Show CmdArg where
 data CmdComplete = CmdComplete String
                  deriving Eq
 
-instance Show CmdComplete where
+instance ShowText CmdComplete where
   show (CmdComplete "") = ""
-  show (CmdComplete complete) = "-complete=" ++ complete
+  show (CmdComplete complete) = "-complete=" <> T.pack complete
 
 data Command =
      Command { cmdName     :: T.Text
@@ -82,8 +86,8 @@ data Command =
              , cmdComplete :: CmdComplete
      } deriving Eq
 
-instance Show Command where
-  show cmd = unwords (filter (/="")
+instance ShowText Command where
+  show cmd = T.unwords (filter (not . T.null)
            [ "command!"
            , show (cmdBang cmd)
            , show (cmdBar cmd)
@@ -92,8 +96,8 @@ instance Show Command where
            , show (cmdRange cmd)
            , show (cmdArg cmd)
            , show (cmdComplete cmd)
-           , T.unpack (cmdName cmd)
-           , T.unpack (cmdRepText cmd)
+           , cmdName cmd
+           , cmdRepText cmd
            ])
 
 defaultCommand :: Command

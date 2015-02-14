@@ -5,6 +5,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 
 import qualified PluginI as PI
+import ShowText
 
 data Plugin =
      Plugin { name          :: T.Text
@@ -26,6 +27,9 @@ data Plugin =
             , loadbefore    :: [T.Text]
             , submodule     :: Bool
      } deriving (Eq, Ord)
+
+instance ShowText Plugin where
+  show = rtpName
 
 instance Show Plugin where
   show = T.unpack . rtpName

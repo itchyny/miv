@@ -1,4 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Mode where
+
+import ShowText
 
 data Mode = NormalMode
           | VisualMode
@@ -14,7 +17,7 @@ data Mode = NormalMode
           | InsertSelectMode
           deriving Eq
 
-instance Show Mode where
+instance ShowText Mode where
   show NormalMode = "n"
   show VisualMode = "v"
   show SelectMode = "s"

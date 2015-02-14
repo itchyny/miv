@@ -1,21 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mapping where
 
+import Prelude hiding (show)
 import qualified Data.Text as T
+import Data.Monoid ((<>))
 
 import Mode
+import ShowText
 
 data MapUnique = MapUnique | MapNoUnique
                deriving Eq
 
-instance Show MapUnique where
+instance ShowText MapUnique where
   show MapUnique = "<unique>"
   show MapNoUnique = ""
 
 data MapSilent = MapSilent | MapNoSilent
                deriving Eq
 
-instance Show MapSilent where
+instance ShowText MapSilent where
   show MapSilent = "<silent>"
   show MapNoSilent = ""
 
@@ -27,13 +30,13 @@ data Mapping =
              , mapMode    :: Mode
      } deriving Eq
 
-instance Show Mapping where
-  show m = unwords (filter (/="")
-          [ show (mapMode m) ++ "noremap"
+instance ShowText Mapping where
+  show m = T.unwords (filter (not . T.null)
+          [ show (mapMode m) <> "noremap"
           , show (mapUnique m)
-         ++ show (mapSilent m)
-          , T.unpack (mapName m)
-          , T.unpack (mapRepText m)
+         <> show (mapSilent m)
+          , mapName m
+          , mapRepText m
           ])
 
 defaultMapping :: Mapping
