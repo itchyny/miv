@@ -67,12 +67,12 @@ instance ShowText CmdArg where
   show CmdOneArg = "-nargs=1"
   show CmdNoArg = "-nargs=0"
 
-data CmdComplete = CmdComplete String
+data CmdComplete = CmdComplete T.Text
                  deriving Eq
 
 instance ShowText CmdComplete where
   show (CmdComplete "") = ""
-  show (CmdComplete complete) = "-complete=" <> T.pack complete
+  show (CmdComplete complete) = "-complete=" <> complete
 
 data Command =
      Command { cmdName     :: T.Text
