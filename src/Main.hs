@@ -202,8 +202,8 @@ generateHelpTags setting = do
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
-              $ system $ unwords ["cd", singleQuote' path,
-                                  "&& cp *", singleQuote' docdir, "2>/dev/null"]
+              $ system $ unwords ["cd", "'" ++ path ++ "'",
+                                  "&& cp *", "'" ++ docdir ++ "'", "2>/dev/null"]
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " ++ docdir ++ "' -c quit"
   putStrLn "Success in processing helptags."
 
@@ -320,7 +320,7 @@ eachOnePlugin command dir (_, _) plugin = do
     >>= \exists ->
       if not exists
          then return (plugin, ExitSuccess)
-         else (,) plugin <$> system (unwords ["cd", singleQuote' path, "&&", command])
+         else (,) plugin <$> system (unwords ["cd", "'" ++ path ++ "'", "&&", command])
 
 eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
