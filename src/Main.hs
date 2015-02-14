@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr)
+import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr, show)
+import qualified Prelude as P
 import Data.Functor ((<$>))
 import Data.List (foldl', nub)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
@@ -23,7 +24,7 @@ import qualified Setting as S
 import qualified Plugin as P
 import Git
 import VimScript
-import qualified ShowText as ST
+import ShowText
 
 nameversion :: T.Text
 nameversion = "miv " <> T.pack (showVersion version)
@@ -100,11 +101,11 @@ printUsage :: IO ()
 printUsage = mapM_ putStrLn usage
 
 commandHelp :: IO ()
-commandHelp = mapM_ (putStrLn . ST.show) arguments
+commandHelp = mapM_ (putStrLn . (show :: Argument -> T.Text)) arguments
 
 data Argument = Argument (T.Text, T.Text)
               deriving (Eq, Ord)
-instance ST.ShowText Argument where
+instance ShowText Argument where
   show (Argument (x, y)) = x <> T.replicate (10 - T.length x) " " <> y
 
 arguments :: [Argument]
@@ -130,7 +131,7 @@ usage = [ nameversion
         , ""
         , "Commands:"
         ]
-     ++ map (T.append "  " . ST.show) arguments
+     ++ map (T.append "  " . show) arguments
      ++ [ ""
         , "You can update the plugins by the following command:"
         , "  miv update"
@@ -172,7 +173,7 @@ suggestCommand arg = do
       containedcommands = [y | y@(Argument (x, _)) <- arguments, T.length arg > 1 && T.unpack arg `isContainedIn` T.unpack x]
   putStrLn $ "Unknown command: " <> arg
   putStrLn "Probably:"
-  mapM_ (putStrLn . ("  "<>) . ST.show) (if null prefixcommands then nub (containedcommands ++ mincommands) else prefixcommands)
+  mapM_ (putStrLn . ("  "<>) . show) (if null prefixcommands then nub (containedcommands ++ mincommands) else prefixcommands)
 
 isContainedIn :: Eq a => [a] -> [a] -> Bool
 isContainedIn xxs@(x:xs) (y:ys) = x == y && xs `isContainedIn` ys || xxs `isContainedIn` ys
@@ -181,34 +182,34 @@ isContainedIn _ [] = False
 
 suggestPlugin :: [P.Plugin] -> T.Text -> IO ()
 suggestPlugin plugin arg = do
-  let plugins = [(levenshtein (T.unpack arg) (show p), p) | p <- plugin]
+  let plugins = [(levenshtein (T.unpack arg) (P.show p), p) | p <- plugin]
       mindist = fst (minimum plugins)
       minplugins = [y | (x, y) <- plugins, x == mindist]
   putStrLn $ "Unknown plugin: " <> arg
   putStrLn "Probably:"
-  mapM_ (putStrLn . ("  "<>) . ST.show) minplugins
+  mapM_ (putStrLn . ("  "<>) . show) minplugins
 
 data Update = Install | Update deriving Eq
-instance ST.ShowText Update where
+instance ShowText Update where
   show Install = "installing"
   show Update = "updating"
 
 updatePlugin :: Update -> Maybe [T.Text] -> S.Setting -> IO ()
 updatePlugin update plugins setting = do
-  let installedPlugins = map ST.show (S.plugin setting)
+  let installedPlugins = map show (S.plugin setting)
       unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let specified p = ST.show p `elem` fromMaybe [] plugins || plugins == Just []
+  let specified p = show p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (S.plugin setting)
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
   result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
   if snd result /= ExitSuccess
      then putStrLn "Error:" >> putStrLn ("  " <> P.name (fst result))
-     else putStrLn ("Success in " <> ST.show update <> ".")
+     else putStrLn ("Success in " <> show update <> ".")
        >> generatePluginCode setting
        >> generateHelpTags setting
 
@@ -224,7 +225,7 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  forM_ (map (\p -> dir <> ST.show p <> "/doc/") (S.plugin setting))
+  forM_ (map (\p -> dir <> show p <> "/doc/") (S.plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
@@ -235,14 +236,14 @@ generateHelpTags setting = do
 
 lastUpdatePlugin :: T.Text -> P.Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir <> ST.show plugin <> "/.git"
+  let path = dir <> show plugin <> "/.git"
   doesDirectoryExist path
     >>= \exists -> if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> T.Text -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
 updateOnePlugin time dir update specified (_, _) plugin = do
-  let path = dir <> ST.show plugin
+  let path = dir <> show plugin
       repo = vimScriptRepo (P.name plugin)
       cloneCommand = if P.submodule plugin then cloneSubmodule else clone
       pullCommand = if P.submodule plugin then pullSubmodule else pull
@@ -266,7 +267,7 @@ vimScriptRepo name | T.any (=='/') name = name
 
 listPlugin :: S.Setting -> IO ()
 listPlugin setting = mapM_ putStrLn $ space $ map format $ S.plugin setting
-  where format p = [ST.show p, P.name p, gitUrl (vimScriptRepo (P.name p))]
+  where format p = [show p, P.name p, gitUrl (vimScriptRepo (P.name p))]
         space xs =
           let max0 = maximum (map (T.length . (!!0)) xs) + 1
               max1 = maximum (map (T.length . (!!1)) xs) + 1
@@ -278,7 +279,7 @@ cleanDirectory setting = do
   dir <- pluginDirectory
   createDirectoryIfMissing dir
   cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map ST.show (S.plugin setting)
+  let paths = "." : ".." : "miv" : map show (S.plugin setting)
       delpath' = [ dir <> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
@@ -296,13 +297,13 @@ cleanDirectory setting = do
 saveScript :: (T.Text, Place, [T.Text]) -> IO ()
 saveScript (dir, place, code) =
   let isftplugin = isFtplugin place
-      relname = ST.show place
+      relname = show place
       name = T.unpack (dir <> relname)
       isallascii = all (T.all (<='~')) code in
   getZonedTime >>= \time ->
   writeFile name $ unlines $
             [ "\" Filename: " <> relname
-            , "\" Last Change: " <> T.pack (show time)
+            , "\" Last Change: " <> T.pack (P.show time)
             , "\" Generated by " <> nameversion
             , "" ]
          ++ (if isallascii then [] else [ "scriptencoding utf-8", "" ])
@@ -341,7 +342,7 @@ eachPlugin command setting = do
 eachOnePlugin :: T.Text -> T.Text -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
 eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 eachOnePlugin command dir (_, _) plugin = do
-  let path = dir <> ST.show plugin
+  let path = dir <> show plugin
   doesDirectoryExist path
     >>= \exists ->
       if not exists
@@ -353,9 +354,9 @@ eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [T.Text] -> S.Setting -> IO ()
 pathPlugin plugins setting = do
-  let ps = filter (\p -> ST.show p `elem` plugins || null plugins) (S.plugin setting)
+  let ps = filter (\p -> show p `elem` plugins || null plugins) (S.plugin setting)
   dir <- pluginDirectory
-  forM_ ps (\plugin -> putStrLn $ dir <> ST.show plugin)
+  forM_ ps (\plugin -> putStrLn $ dir <> show plugin)
 
 mainProgram :: [T.Text] -> IO ()
 mainProgram [] = printUsage
