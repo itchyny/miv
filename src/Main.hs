@@ -256,8 +256,9 @@ generateHelpTags setting = do
 lastUpdatePlugin :: Text -> P.Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
   let path = dir <> show plugin <> "/.git"
-  doesDirectoryExist path
-    >>= \exists -> if exists then lastUpdate path else return 0
+  exists <- doesDirectoryExist path
+  status <- gitStatus $ dir <> show plugin
+  if exists && status == ExitSuccess then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> Text -> Update -> Bool -> UpdateStatus -> P.Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified status plugin = do
@@ -266,8 +267,10 @@ updateOnePlugin time dir update specified status plugin = do
       cloneCommand = if P.submodule plugin then cloneSubmodule else clone
       pullCommand = if P.submodule plugin then pullSubmodule else pull
   exists <- doesDirectoryExist path
-  if not exists
+  gitstatus <- gitStatus path
+  if not exists || (gitstatus /= ExitSuccess && not (P.sync plugin))
      then do putStrLn $ "Installing: " <> P.name plugin
+             when exists $ removeDirectoryRecursive path
              cloneStatus <- cloneCommand repo path
              created <- doesDirectoryExist path
              if cloneStatus /= ExitSuccess || not created

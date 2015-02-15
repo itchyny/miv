@@ -5,6 +5,7 @@ module Git
   , pull
   , pullSubmodule
   , lastUpdate
+  , gitStatus
   , gitUrl
   , system
   )
@@ -31,6 +32,9 @@ pullSubmodule path = system $ unwords ["cd", singleQuote path, "&&", "git", "pul
 
 lastUpdate :: Text -> IO Integer
 lastUpdate path = read <$> readProcess "sh" ["-c", unwords ["cd", singleQuote path, "&&", "git", "show", "-s", "--format=%ct"]] []
+
+gitStatus :: Text -> IO ExitCode
+gitStatus path = system $ unwords ["cd", singleQuote path, ">/dev/null 2>&1", "&&", "git", "status", ">/dev/null 2>&1"]
 
 gitUrl :: Text -> Text
 gitUrl = ("https://github.com/" <>)
