@@ -107,17 +107,17 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
 addAutoloadNames :: VimScript -> VimScript
 addAutoloadNames h@(VimScript hm)
   = VimScript (HM.singleton (Autoload "")
-      [ "let s:autoloads = { " <> T.intercalate ", " ((\x -> singleQuote x <> ": 1")
-                                    <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
+      [ "let s:autoloads = { " <> T.intercalate ", " (((<>": 1") . singleQuote)
+                               <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
    <> h
 
 gather :: Text -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
 gather name f plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
-   <> [ "      \\ " <> singleQuote (P.rtpName p) <> ": [ " <>
-                     T.intercalate ", " [ singleQuote q | q <- f p ]
-                  <> " ]," | p <- plg, not (null (f p)) ]
+   <> [ "      \\ " <> singleQuote (P.rtpName p)
+                    <> ": [ " <> T.intercalate ", " (map singleQuote (f p))  <> " ],"
+                                                               | p <- plg, not (null (f p)) ]
    <> [ "      \\ }" ])
 
 pluginConfig :: P.Plugin -> VimScript
@@ -250,7 +250,7 @@ wrapEnable plg str
   | P.enable plg == "0" = []
   | otherwise = (indent <> "if " <> P.enable plg)
                            : map ("  "<>) str
-                           <> [indent <> "endif"]
+             <> [indent <> "endif"]
   where indent = T.takeWhile (==' ') (head str)
 
 singleQuote :: Text -> Text
