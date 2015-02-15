@@ -194,10 +194,21 @@ instance ShowText Update where
   show Install = "installing"
   show Update = "updating"
 
+data UpdateStatus
+   = UpdateStatus {
+       installed :: [P.Plugin],
+       updated :: [P.Plugin],
+       nosync :: [P.Plugin],
+       outdated :: [P.Plugin],
+       failed :: [P.Plugin]
+   }
+
+defaultUpdateStatus :: UpdateStatus
+defaultUpdateStatus = UpdateStatus [] [] [] [] []
+
 updatePlugin :: Update -> Maybe [Text] -> S.Setting -> IO ()
 updatePlugin update plugins setting = do
-  let installedPlugins = map show (S.plugin setting)
-      unknownPlugins = filter (`notElem` installedPlugins) (fromMaybe [] plugins)
+  let unknownPlugins = filter (`notElem` map show (S.plugin setting)) (fromMaybe [] plugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
   createPluginDirectory
@@ -205,13 +216,21 @@ updatePlugin update plugins setting = do
   let specified p = show p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (S.plugin setting)
+  let count xs = if length xs > 1 then "s (" <> pack (P.show (length xs)) <> ")" else ""
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
-  result <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) (P.defaultPlugin, ExitSuccess) ps
-  if snd result /= ExitSuccess
-     then putStrLn "Error:" >> putStrLn ("  " <> P.name (fst result))
-     else putStrLn ("Success in " <> show update <> ".")
-       >> generatePluginCode setting
-       >> generateHelpTags setting
+  status <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) defaultUpdateStatus ps
+  putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
+  unless (null (installed status))
+    (putStrLn ("Installed plugin" <> count (installed status) <> ": ")
+     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (installed status)))
+  unless (null (updated status))
+    (putStrLn ("Updated plugin" <> count (updated status) <> ": ")
+     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (updated status)))
+  unless (null (failed status))
+    (putStrLn ("Failed plugin" <> count (failed status) <> ": ")
+     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (failed status)))
+  generatePluginCode setting
+  generateHelpTags setting
 
 cleanAndCreateDirectory :: Text -> IO ()
 cleanAndCreateDirectory directory = do
@@ -240,26 +259,34 @@ lastUpdatePlugin dir plugin = do
   doesDirectoryExist path
     >>= \exists -> if exists then lastUpdate path else return 0
 
-updateOnePlugin :: Integer -> Text -> Update -> Bool -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
-updateOnePlugin _ _ _ _ x@(_, ExitFailure 2) _ = return x
-updateOnePlugin time dir update specified (_, _) plugin = do
+updateOnePlugin :: Integer -> Text -> Update -> Bool -> UpdateStatus -> P.Plugin -> IO UpdateStatus
+updateOnePlugin time dir update specified status plugin = do
   let path = dir <> show plugin
       repo = vimScriptRepo (P.name plugin)
       cloneCommand = if P.submodule plugin then cloneSubmodule else clone
       pullCommand = if P.submodule plugin then pullSubmodule else pull
-  doesDirectoryExist path
-    >>= \exists ->
-      if not exists
-         then putStrLn ("Installing: " <> P.name plugin)
-              >> (,) plugin <$> cloneCommand repo path
-         else if update == Install || not (P.sync plugin)
-                 then return (plugin, ExitSuccess)
-                 else lastUpdate path >>= \lastUpdateTime ->
-                      if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                         then putStrLn ("Outdated: " <> P.name plugin)
-                              >> return (plugin, ExitSuccess)
-                         else putStrLn ("Pulling: " <> P.name plugin)
-                              >> (,) plugin <$> pullCommand path
+  exists <- doesDirectoryExist path
+  if not exists
+     then do putStrLn $ "Installing: " <> P.name plugin
+             cloneStatus <- cloneCommand repo path
+             created <- doesDirectoryExist path
+             if cloneStatus /= ExitSuccess || not created
+                then return status { failed = plugin : failed status }
+                else return status { installed = plugin : installed status }
+     else if update == Install || not (P.sync plugin)
+             then return status { nosync = plugin : nosync status }
+             else lastUpdate path >>= \lastUpdateTime ->
+                  if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
+                     then do putStrLn $ "Outdated: " <> P.name plugin
+                             return status { outdated = plugin : outdated status }
+                     else do putStrLn $ "Pulling: " <> P.name plugin
+                             pullStatus <- pullCommand path
+                             newUpdateTime <- lastUpdate path
+                             return $ if pullStatus /= ExitSuccess
+                                         then status { failed = plugin : failed status }
+                                         else if newUpdateTime <= lastUpdateTime
+                                                 then status
+                                                 else status { updated = plugin : updated status }
 
 vimScriptRepo :: Text -> Text
 vimScriptRepo name | T.any (=='/') name = name
