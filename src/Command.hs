@@ -4,6 +4,7 @@ module Command where
 import Prelude hiding (show)
 import qualified Prelude as P
 import qualified Data.Text as T
+import Data.Text (Text, pack)
 import Data.Monoid ((<>))
 import ShowText
 
@@ -49,8 +50,8 @@ data CmdRange = CmdRange
 instance ShowText CmdRange where
   show CmdRange = "-range"
   show CmdRangeWhole = "-range=%"
-  show (CmdRangeN n) = "-range=" <> T.pack (P.show n)
-  show (CmdRangeCount n) = "-count=" <> T.pack (P.show n)
+  show (CmdRangeN n) = "-range=" <> pack (P.show n)
+  show (CmdRangeCount n) = "-count=" <> pack (P.show n)
   show CmdNoRange = ""
 
 data CmdArg = CmdNonNegArg
@@ -67,7 +68,7 @@ instance ShowText CmdArg where
   show CmdOneArg = "-nargs=1"
   show CmdNoArg = "-nargs=0"
 
-data CmdComplete = CmdComplete T.Text
+data CmdComplete = CmdComplete Text
                  deriving Eq
 
 instance ShowText CmdComplete where
@@ -75,8 +76,8 @@ instance ShowText CmdComplete where
   show (CmdComplete complete) = "-complete=" <> complete
 
 data Command =
-     Command { cmdName     :: T.Text
-             , cmdRepText  :: T.Text
+     Command { cmdName     :: Text
+             , cmdRepText  :: Text
              , cmdBang     :: CmdBang
              , cmdBar      :: CmdBar
              , cmdRegister :: CmdRegister

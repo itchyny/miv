@@ -4,16 +4,16 @@ module SettingI where
 import Data.Aeson ()
 import Data.Aeson.TH
 import Data.HashMap.Lazy
-import qualified Data.Text as T
+import Data.Text (Text)
 
 import PluginI
 
 data SettingI =
-     SettingI { plugin         :: Maybe (HashMap T.Text PluginI)
-              , filetypeScript :: Maybe (HashMap T.Text T.Text)
-              , beforeScript   :: Maybe T.Text
-              , afterScript    :: Maybe T.Text
-              , filetypeDetect :: Maybe (HashMap T.Text T.Text)
+     SettingI { plugin         :: Maybe (HashMap Text PluginI)
+              , filetypeScript :: Maybe (HashMap Text Text)
+              , beforeScript   :: Maybe Text
+              , afterScript    :: Maybe Text
+              , filetypeDetect :: Maybe (HashMap Text Text)
      } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''SettingI)
 

@@ -3,28 +3,29 @@ module Plugin where
 
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
+import Data.Text (Text, unpack)
 
 import qualified PluginI as PI
 import ShowText
 
 data Plugin =
-     Plugin { name          :: T.Text
-            , filetypes     :: [T.Text]
-            , commands      :: [T.Text]
-            , functions     :: [T.Text]
-            , mappings      :: [T.Text]
-            , mapmodes      :: [T.Text]
+     Plugin { name          :: Text
+            , filetypes     :: [Text]
+            , commands      :: [Text]
+            , functions     :: [Text]
+            , mappings      :: [Text]
+            , mapmodes      :: [Text]
             , insert        :: Bool
-            , enable        :: T.Text
+            , enable        :: Text
             , sync          :: Bool
-            , mapleader     :: T.Text
-            , script        :: [T.Text]
-            , afterScript   :: [T.Text]
-            , beforeScript  :: [T.Text]
-            , dependon      :: [T.Text]
-            , dependedby    :: [T.Text]
-            , loadafter     :: [T.Text]
-            , loadbefore    :: [T.Text]
+            , mapleader     :: Text
+            , script        :: [Text]
+            , afterScript   :: [Text]
+            , beforeScript  :: [Text]
+            , dependon      :: [Text]
+            , dependedby    :: [Text]
+            , loadafter     :: [Text]
+            , loadbefore    :: [Text]
             , submodule     :: Bool
      } deriving (Eq, Ord)
 
@@ -32,9 +33,9 @@ instance ShowText Plugin where
   show = rtpName
 
 instance Show Plugin where
-  show = T.unpack . rtpName
+  show = unpack . rtpName
 
-rtpName :: Plugin -> T.Text
+rtpName :: Plugin -> Text
 rtpName plg = subst (name plg)
   where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
                 | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
@@ -42,7 +43,7 @@ rtpName plg = subst (name plg)
                 | "vim-" `T.isPrefixOf` s = T.drop 4 s
                 | otherwise = T.filter (`notElem`"!?;:/<>()[]{}|~'\"") s
 
-toPlugin :: T.Text -> PI.PluginI -> Plugin
+toPlugin :: Text -> PI.PluginI -> Plugin
 toPlugin n p
   = Plugin { name = n
            , filetypes    = maybe id (:) (PI.filetype p) (fromMaybe [] (PI.filetypes p))

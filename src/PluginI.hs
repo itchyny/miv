@@ -3,30 +3,30 @@ module PluginI where
 
 import Data.Aeson ()
 import Data.Aeson.TH
-import qualified Data.Text as T
+import Data.Text (Text)
 
 data PluginI =
-     PluginI { filetype      :: Maybe T.Text
-             , filetypes     :: Maybe [T.Text]
-             , command       :: Maybe T.Text
-             , commands      :: Maybe [T.Text]
-             , function      :: Maybe T.Text
-             , functions     :: Maybe [T.Text]
-             , mapping       :: Maybe T.Text
-             , mappings      :: Maybe [T.Text]
-             , mapmode       :: Maybe T.Text
-             , mapmodes      :: Maybe [T.Text]
-             , enable        :: Maybe T.Text
+     PluginI { filetype      :: Maybe Text
+             , filetypes     :: Maybe [Text]
+             , command       :: Maybe Text
+             , commands      :: Maybe [Text]
+             , function      :: Maybe Text
+             , functions     :: Maybe [Text]
+             , mapping       :: Maybe Text
+             , mappings      :: Maybe [Text]
+             , mapmode       :: Maybe Text
+             , mapmodes      :: Maybe [Text]
+             , enable        :: Maybe Text
              , sync          :: Maybe Bool
              , insert        :: Maybe Bool
-             , mapleader     :: Maybe T.Text
-             , script        :: Maybe T.Text
-             , afterScript   :: Maybe T.Text
-             , beforeScript  :: Maybe T.Text
-             , dependon      :: Maybe [T.Text]
-             , dependedby    :: Maybe [T.Text]
-             , loadafter     :: Maybe [T.Text]
-             , loadbefore    :: Maybe [T.Text]
+             , mapleader     :: Maybe Text
+             , script        :: Maybe Text
+             , afterScript   :: Maybe Text
+             , beforeScript  :: Maybe Text
+             , dependon      :: Maybe [Text]
+             , dependedby    :: Maybe [Text]
+             , loadafter     :: Maybe [Text]
+             , loadbefore    :: Maybe [Text]
              , submodule     :: Maybe Bool
       } deriving (Eq, Show)
 $(deriveJSON defaultOptions ''PluginI)
