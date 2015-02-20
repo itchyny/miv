@@ -10,6 +10,8 @@
 
 ### AUR
 
+miv is available in the [AUR](https://aur.archlinux.org/packages/miv-git/):
+
 ```
  $ pacaur -S miv-git
 ```
