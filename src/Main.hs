@@ -315,13 +315,13 @@ cleanDirectory setting = do
   delfile <- filterM doesFileExist delpath'
   let delpath = deldir <> delfile
   if not (null delpath)
-     then putStrLn "Remove:"
-       >> mapM_ (putStrLn . ("  "<>)) delpath
-       >> putStr "Really? [y/N] "
-       >> hFlush stdout
-       >> getChar
-       >>= \c -> when (c == 'y' || c == 'Y')
-                      (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
+     then do putStrLn "Remove:"
+             mapM_ (putStrLn . ("  "<>)) delpath
+             putStr "Really? [y/N] "
+             hFlush stdout
+             c <- getChar
+             when (c == 'y' || c == 'Y')
+                  (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
      else putStrLn "Clean."
 
 saveScript :: (Text, Place, [Text]) -> IO ()
