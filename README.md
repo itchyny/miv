@@ -8,6 +8,14 @@
  $ sudo cabal install
 ```
 
+### AUR
+
+miv is available in the [AUR](https://aur.archlinux.org/packages/miv-git/):
+
+```
+ $ pacaur -S miv-git
+```
+
 ## User guide
 1. Add the miv plugin path to runtimepath in your vimrc.
 2. Create ~/.vimrc.yaml.
