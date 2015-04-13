@@ -290,7 +290,7 @@ mappingLoader = VimScript (HM.singleton (Autoload "")
   , "    call feedkeys(\"\\<Esc>\", 'n')"
   , "    call feedkeys(v:operator, 'm')"
   , "  endif"
-  , "  call feedkeys(substitute(a:mapping, '<Plug>', \"\\<Plug>\", 'g'), 'm')"
+  , "  call feedkeys((v:count ? v:count : '') . substitute(a:mapping, '<Plug>', \"\\<Plug>\", 'g'), 'm')"
   , "  return ''"
   , "endfunction"
   ])
