@@ -41,7 +41,7 @@ rtpName plg = subst (name plg)
                 | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
                 | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
                 | "vim-" `T.isPrefixOf` s = T.drop 4 s
-                | otherwise = T.filter (`notElem`"!?;:/<>()[]{}|~'\"") s
+                | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
 
 toPlugin :: Text -> PI.PluginI -> Plugin
 toPlugin n p
