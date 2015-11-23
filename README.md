@@ -5,7 +5,7 @@
 ```
  $ git clone https://github.com/itchyny/miv
  $ cd miv
- $ sudo cabal install
+ $ stack install
 ```
 
 ### AUR
