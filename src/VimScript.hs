@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
 module VimScript where
 
-import Prelude hiding (show, unwords)
+import Data.Char (isAlpha, isAlphaNum, toLower)
+import Data.Functor ((<$>))
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
-import Data.Char (isAlpha, isAlphaNum, toLower)
 import Data.List (foldl')
-import Data.Functor ((<$>))
 import Data.Maybe (mapMaybe)
 import Data.Monoid (Monoid (..), (<>))
-import qualified Data.Text as T
 import Data.Text (Text, unpack, unwords, singleton)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
+import Prelude hiding (show, unwords)
 
 import qualified Setting as S
 import qualified Plugin as P

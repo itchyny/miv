@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Command where
 
-import Prelude hiding (show)
-import qualified Prelude as P
+import Data.Monoid ((<>))
 import qualified Data.Text as T
 import Data.Text (Text, pack)
-import Data.Monoid ((<>))
+import Prelude hiding (show)
+import qualified Prelude as P
 import ShowText
 
 data CmdBang = CmdBang

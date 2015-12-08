@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr, show)
-import qualified Prelude as P
+import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
 import Data.Functor ((<$>))
 import Data.List (foldl', nub)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
@@ -12,13 +11,14 @@ import Data.Text (Text, unwords, unlines, pack, unpack)
 import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
+import Paths_miv (version)
+import qualified Prelude as P
+import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr, show)
 import qualified System.Directory as SD
 import qualified System.Environment as SE
 import System.Exit (ExitCode(..))
 import System.Info (os)
 import System.IO (hFlush, stdout)
-import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
-import Paths_miv (version)
 
 import qualified Setting as S
 import qualified Plugin as P

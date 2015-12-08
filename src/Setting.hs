@@ -1,13 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Setting where
 
+import Data.Function (on)
+import qualified Data.HashMap.Lazy as HM
+import Data.List (sortBy)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text, lines)
 import qualified Data.Yaml as Y
 import Prelude hiding (lines)
-import qualified Data.HashMap.Lazy as HM
-import Data.Maybe (fromMaybe)
-import Data.List (sortBy)
-import Data.Function (on)
-import Data.Text (Text, lines)
 
 import qualified Plugin as P
 import qualified SettingI as SI

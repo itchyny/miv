@@ -11,12 +11,12 @@ module Git
   )
   where
 
-import Prelude hiding (unwords)
 import Data.Functor ((<$>))
 import Data.Monoid ((<>))
-import qualified System.Process as SP
-import System.Exit (ExitCode(..))
 import Data.Text (Text, unwords, unpack)
+import Prelude hiding (unwords)
+import System.Exit (ExitCode(..))
+import qualified System.Process as SP
 
 clone :: Text -> Text -> IO ExitCode
 clone repo path = system $ unwords ["git", "clone", gitUrl repo, singleQuote path]
