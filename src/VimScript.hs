@@ -262,8 +262,8 @@ filetypeScript =
 
 filetypeDetect :: HM.HashMap Text Text -> VimScript
 filetypeDetect =
-  mkVimScript . HM.foldrWithKey (\ext ft val -> val <> [f ext ft]) []
-    where f ext ft = "  autocmd BufNewFile,BufReadPost *." <> ext <> " setlocal filetype=" <> ft
+  mkVimScript . HM.foldrWithKey (\exts ft val -> val <> [f exts ft]) []
+    where f exts ft = "  autocmd BufNewFile,BufReadPost " <> T.intercalate "," (map ("*."<>) (T.split (==',') exts)) <> " setlocal filetype=" <> ft
           mkVimScript [] = mempty
           mkVimScript xs = VimScript (HM.singleton Plugin (p <> xs <> a))
           p = ["\" Filetype detection", "augroup MivFileTypeDetect", "  autocmd!"]
