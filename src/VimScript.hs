@@ -13,11 +13,11 @@ import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Prelude hiding (show, unwords)
 
-import qualified Setting as S
-import qualified Plugin as P
 import qualified Command as C
 import qualified Mapping as M
 import Mode
+import qualified Plugin as P
+import qualified Setting as S
 import ShowText
 
 data VimScript = VimScript (HM.HashMap Place [Text])

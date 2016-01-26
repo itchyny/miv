@@ -20,11 +20,11 @@ import System.Exit (ExitCode(..))
 import System.Info (os)
 import System.IO (hFlush, stdout)
 
-import qualified Setting as S
-import qualified Plugin as P
 import Git
-import VimScript
+import qualified Plugin as P
+import qualified Setting as S
 import ShowText
+import VimScript
 
 nameversion :: Text
 nameversion = "miv " <> pack (showVersion version)
