@@ -6,12 +6,12 @@ import Data.Functor ((<$>))
 import Data.List (foldl', nub)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
-import qualified Data.Text as T
 import Data.Text (Text, unwords, unlines, pack, unpack)
+import qualified Data.Text as T
 import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import Paths_miv (version)
+import qualified Data.Yaml as Y
 import qualified Prelude as P
 import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr, show)
 import qualified System.Directory as SD
@@ -21,6 +21,7 @@ import System.Info (os)
 import System.IO (hFlush, stdout)
 
 import Git
+import Paths_miv (version)
 import qualified Plugin as P
 import qualified Setting as S
 import ShowText
@@ -73,7 +74,7 @@ getSettingFile
        ]
 
 getSetting :: IO (Maybe S.Setting)
-getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= S.decodeSetting . unpack
+getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= Y.decodeFile . unpack
 
 getSettingWithError :: IO S.Setting
 getSettingWithError =

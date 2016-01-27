@@ -8,7 +8,6 @@ import qualified Data.HashMap.Lazy as HM
 import Data.List (sortBy)
 import Data.Maybe (fromMaybe)
 import Data.Text (Text, lines)
-import qualified Data.Yaml as Y
 import Prelude hiding (lines)
 
 import qualified Plugin as P
@@ -20,9 +19,6 @@ data Setting =
              , afterScript    :: [Text]
              , filetypeDetect :: HM.HashMap Text Text
      } deriving (Eq, Show)
-
-decodeSetting :: FilePath -> IO (Maybe Setting)
-decodeSetting = Y.decodeFile
 
 instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
