@@ -45,7 +45,7 @@ plugin:
 
   Shougo/neocomplete.vim:
     enable: has('lua') && v:version > 703
-    beforeScript: |
+    before: |
       let g:neocomplete#enable_at_startup = 1
       let g:neocomplete#enable_smart_case = 1
       let g:neocomplete#max_list = 1000
@@ -67,7 +67,7 @@ plugin:
     dependon:
       - vimproc
       - unite
-    beforeScript: |
+    before: |
       let g:vimfiler_as_default_explorer = 1
       let g:vimfiler_sort_type = 'TIME'
     script: |
@@ -82,13 +82,13 @@ plugin:
       - Unite
     mapleader: ","
     function: unite
-    beforeScript: |
+    before: |
       let g:unite_force_overwrite_statusline = 0
     script: |
       nnoremap <silent><C-n> :<C-u>Unite file/new directory/new<CR>
       nnoremap <silent><C-o> :<C-u>Unite file file/new<CR>
       nnoremap <silent><S-l> :<C-u>Unite line<CR>
-    afterScript: |
+    after: |
       call unite#custom#profile('default', 'context', {
             \ 'start_insert' : 1,
             \ 'prompt_direction': 'top',
@@ -120,7 +120,7 @@ plugin:
     mapleader: ;
     dependon:
       - vimproc
-    beforeScript: |
+    before: |
       let g:vimshell_popup_command = 'top new'
       let g:vimshell_split_command = 'vsplit'
     script: |
@@ -147,7 +147,7 @@ plugin:
     mapping: <Plug>(calendar)
     script: |
       map <silent> <Leader>z <Plug>(calendar)
-    beforeScript: |
+    before: |
       let g:calendar_views = [ 'year', 'month', 'day_3', 'clock' ]
       let g:calendar_google_calendar = 1
       let g:calendar_google_task = 1
@@ -159,9 +159,9 @@ plugin:
     filetypes: 
       - html
       - css
-    beforeScript: |
+    before: |
       let g:user_emmet_settings = { 'indentation' : '  ' }
-    afterScript: |
+    after: |
       autocmd FileType html,css imap <buffer> <tab> <plug>(emmet-expand-abbr)
 
   wavded/vim-stylus:
