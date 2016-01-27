@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Setting where
 
+import Data.Aeson
 import Data.Function (on)
 import qualified Data.HashMap.Lazy as HM
 import Data.List (sortBy)
@@ -10,7 +12,6 @@ import qualified Data.Yaml as Y
 import Prelude hiding (lines)
 
 import qualified Plugin as P
-import qualified SettingI as SI
 
 data Setting =
      Setting { plugin         :: [P.Plugin]
@@ -18,19 +19,19 @@ data Setting =
              , beforeScript   :: [Text]
              , afterScript    :: [Text]
              , filetypeDetect :: HM.HashMap Text Text
-     } deriving (Eq)
+     } deriving (Eq, Show)
 
 decodeSetting :: FilePath -> IO (Maybe Setting)
-decodeSetting = fmap (fmap toSetting) . Y.decodeFile
+decodeSetting = Y.decodeFile
 
-toSetting :: SI.SettingI -> Setting
-toSetting s
-  = Setting { plugin = sortWith P.name $ maybe [] (HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []) (SI.plugin s)
-            , filetypeScript = maybe HM.empty (HM.map lines) (SI.filetypeScript s)
-            , beforeScript = lines $ fromMaybe "" (SI.beforeScript s)
-            , afterScript = lines $ fromMaybe "" (SI.afterScript s)
-            , filetypeDetect = fromMaybe HM.empty (SI.filetypeDetect s)
-  }
+instance FromJSON Setting where
+  parseJSON = withObject "setting" $ \o -> do
+    plugin <- fmap (sortWith P.name . HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []) (o .:? "plugin" .!= HM.empty)
+    filetypeScript <- HM.map lines <$> o .:? "filetypeScript" .!= HM.empty
+    beforeScript <- lines <$> o .:? "beforeScript" .!= ""
+    afterScript <- lines <$> o .:? "afterScript" .!= ""
+    filetypeDetect <- o .:? "filetypeDetect" .!= HM.empty
+    return Setting {..}
 
 sortWith :: Ord b => (a -> b) -> [a] -> [a]
 sortWith = sortBy . on compare

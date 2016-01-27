@@ -14,7 +14,6 @@ executable miv
   hs-source-dirs:       src
   main-is:              Main.hs
   other-modules:        Plugin
-                      , SettingI
                       , Setting
                       , Mode
                       , Command
