@@ -13,8 +13,7 @@ description:            The miv command is a to manage Vim plugins.
 executable miv
   hs-source-dirs:       src
   main-is:              Main.hs
-  other-modules:        PluginI
-                      , Plugin
+  other-modules:        Plugin
                       , SettingI
                       , Setting
                       , Mode

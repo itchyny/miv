@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Plugin where
 
-import Data.Maybe (fromMaybe)
+import Control.Applicative ((<|>))
+import Data.Aeson
+import Data.Maybe (fromMaybe, maybeToList)
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
 
-import qualified PluginI as PI
 import ShowText
 
 data Plugin =
@@ -43,27 +45,30 @@ rtpName plg = subst (name plg)
                 | "vim-" `T.isPrefixOf` s = T.drop 4 s
                 | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
 
-toPlugin :: Text -> PI.PluginI -> Plugin
-toPlugin n p
-  = Plugin { name = n
-           , filetypes    = maybe id (:) (PI.filetype p) (fromMaybe [] (PI.filetypes p))
-           , commands     = maybe id (:) (PI.command p) (fromMaybe [] (PI.commands p))
-           , functions    = maybe id (:) (PI.function p) (fromMaybe [] (PI.functions p))
-           , mappings     = maybe id (:) (PI.mapping p) (fromMaybe [] (PI.mappings p))
-           , mapmodes     = maybe id (:) (PI.mapmode p) (fromMaybe [] (PI.mapmodes p))
-           , enable       = fromMaybe "" (PI.enable p)
-           , sync         = fromMaybe True (PI.sync p)
-           , insert       = fromMaybe False (PI.insert p)
-           , mapleader    = fromMaybe "" (PI.mapleader p)
-           , script       = T.lines $ fromMaybe "" (PI.script p)
-           , afterScript  = T.lines $ fromMaybe "" (PI.afterScript p)
-           , beforeScript = T.lines $ fromMaybe "" (PI.beforeScript p)
-           , dependon     = fromMaybe [] (PI.dependon p)
-           , dependedby   = fromMaybe [] (PI.dependedby p)
-           , loadafter    = fromMaybe [] (PI.loadafter p)
-           , loadbefore   = fromMaybe [] (PI.loadbefore p)
-           , submodule    = fromMaybe False (PI.submodule p)
-  }
+instance FromJSON Plugin where
+  parseJSON = withObject "plugin" $ \o -> do
+    let name = ""
+    filetypes <- o .: "filetypes" <|> fmap (:[]) (o .:? "filetype" .!= "")
+    commands <- o .: "commands" <|> fmap (:[]) (o .:? "command" .!= "")
+    functions <- o .: "functions" <|> fmap (:[]) (o .:? "function" .!= "")
+    mappings <- o .: "mappings" <|> fmap (:[]) (o .:? "mapping" .!= "")
+    mapmodes <- o .: "mapmodes" <|> fmap (:[]) (o .:? "mapmode" .!= "")
+    mapleader <- o .:? "mapleader" .!= ""
+    insert <- o .:? "insert" .!= False
+    enable <- o .:? "enable" .!= ""
+    sync <- o .:? "sync" .!= True
+    script <- T.lines <$> (o .:? "script") .!= ""
+    afterScript <- T.lines <$> (o .:? "afterScript") .!= ""
+    beforeScript <- T.lines <$> (o .:? "beforeScript") .!= ""
+    dependon <- o .:? "dependon" .!= []
+    dependedby <- o .:? "dependedby" .!= []
+    loadafter <- o .:? "loadafter" .!= []
+    loadbefore <- o .:? "loadbefore" .!= []
+    submodule <- o .:? "submodule" .!= False
+    return Plugin {..}
+
+instance ToJSON Plugin where
+  toJSON = const (object [])
 
 defaultPlugin :: Plugin
 defaultPlugin =

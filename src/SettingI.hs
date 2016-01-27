@@ -6,10 +6,10 @@ import Data.Aeson.TH
 import Data.HashMap.Lazy
 import Data.Text (Text)
 
-import PluginI
+import Plugin
 
 data SettingI =
-     SettingI { plugin         :: Maybe (HashMap Text PluginI)
+     SettingI { plugin         :: Maybe (HashMap Text Plugin)
               , filetypeScript :: Maybe (HashMap Text Text)
               , beforeScript   :: Maybe Text
               , afterScript    :: Maybe Text
