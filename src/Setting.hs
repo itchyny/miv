@@ -21,12 +21,13 @@ data Setting =
 
 instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
-    plugin <- fmap (sortWith P.name . HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []) (o .:? "plugin" .!= HM.empty)
+    plugin <- pluginHashMapToList <$> o .:? "plugin" .!= HM.empty
     filetypeScript <- HM.map lines <$> o .:? "filetypeScript" .!= HM.empty
     beforeScript <- lines <$> o .:? "beforeScript" .!= ""
     afterScript <- lines <$> o .:? "afterScript" .!= ""
     filetypeDetect <- o .:? "filetypeDetect" .!= HM.empty
     return Setting {..}
+      where pluginHashMapToList = sortWith P.name . HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []
 
 sortWith :: Ord b => (a -> b) -> [a] -> [a]
 sortWith = sortBy . on compare
