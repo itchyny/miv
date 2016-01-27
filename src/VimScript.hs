@@ -77,7 +77,7 @@ gatherScript setting = addAutoloadNames
                     <> foldl' (<>) mempty (map pluginConfig plugins)
                     <> filetypeLoader setting
                     <> gatherInsertEnter setting
-                    <> filetypeScript (S.filetypeScript setting)
+                    <> filetypeScript (S.filetype setting)
                     <> filetypeDetect (S.filetypeDetect setting)
                     <> afterScript setting
   where plugins = S.plugin setting
@@ -92,7 +92,7 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
        <> [ "      \\ }" ]) <> vs
     gatherScripts :: [P.Plugin] -> (VimScript, HM.HashMap Text Text) -> (VimScript, HM.HashMap Text Text)
     gatherScripts (p:ps) (vs, hm)
-            | null (P.beforeScript p) && null (P.afterScript p) = gatherScripts ps (vs, hm)
+            | null (P.before p) && null (P.after p) = gatherScripts ps (vs, hm)
             | otherwise = gatherScripts ps (vs <> vs', HM.insert name hchar hm)
       where
         name = T.filter isAlphaNum (T.toLower (P.rtpName p))
@@ -100,8 +100,8 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
               | otherwise = "_"
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
         au = Autoload hchar
-        vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.beforeScript p)
-                                         <> wrapFunction (funcname "after") (P.afterScript p)
+        vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.before p)
+                                         <> wrapFunction (funcname "after") (P.after p)
     gatherScripts [] (vs, hm) = (vs, hm)
 
 addAutoloadNames :: VimScript -> VimScript
@@ -166,10 +166,10 @@ gatherMapping plg
   | otherwise = []
 
 beforeScript :: S.Setting -> VimScript
-beforeScript setting = VimScript (HM.singleton Plugin (S.beforeScript setting))
+beforeScript setting = VimScript (HM.singleton Plugin (S.before setting))
 
 afterScript :: S.Setting -> VimScript
-afterScript setting = VimScript (HM.singleton Plugin (S.afterScript setting))
+afterScript setting = VimScript (HM.singleton Plugin (S.after setting))
 
 filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting

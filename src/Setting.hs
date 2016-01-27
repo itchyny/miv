@@ -13,18 +13,18 @@ import qualified Plugin as P
 
 data Setting =
      Setting { plugin         :: [P.Plugin]
-             , filetypeScript :: HM.HashMap Text [Text]
-             , beforeScript   :: [Text]
-             , afterScript    :: [Text]
+             , filetype       :: HM.HashMap Text [Text]
+             , before         :: [Text]
+             , after          :: [Text]
              , filetypeDetect :: HM.HashMap Text Text
      } deriving (Eq, Show)
 
 instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
     plugin <- pluginHashMapToList <$> o .:? "plugin" .!= HM.empty
-    filetypeScript <- HM.map lines <$> o .:? "filetypeScript" .!= HM.empty
-    beforeScript <- lines <$> o .:? "beforeScript" .!= ""
-    afterScript <- lines <$> o .:? "afterScript" .!= ""
+    filetype <- HM.map lines <$> o .:? "filetype" .!= HM.empty
+    before <- lines <$> o .:? "before" .!= ""
+    after <- lines <$> o .:? "after" .!= ""
     filetypeDetect <- o .:? "filetypeDetect" .!= HM.empty
     return Setting {..}
       where pluginHashMapToList = sortWith P.name . HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []

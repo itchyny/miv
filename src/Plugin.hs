@@ -21,8 +21,8 @@ data Plugin =
             , sync          :: Bool
             , mapleader     :: Text
             , script        :: [Text]
-            , afterScript   :: [Text]
-            , beforeScript  :: [Text]
+            , after         :: [Text]
+            , before        :: [Text]
             , dependon      :: [Text]
             , dependedby    :: [Text]
             , loadafter     :: [Text]
@@ -57,8 +57,8 @@ instance FromJSON Plugin where
     enable <- o .:? "enable" .!= ""
     sync <- o .:? "sync" .!= True
     script <- T.lines <$> (o .:? "script") .!= ""
-    afterScript <- T.lines <$> (o .:? "afterScript") .!= ""
-    beforeScript <- T.lines <$> (o .:? "beforeScript") .!= ""
+    after <- T.lines <$> (o .:? "after") .!= ""
+    before <- T.lines <$> (o .:? "before") .!= ""
     dependon <- o .:? "dependon" .!= []
     dependedby <- o .:? "dependedby" .!= []
     loadafter <- o .:? "loadafter" .!= []
@@ -82,8 +82,8 @@ defaultPlugin =
          , sync          = False
          , mapleader     = ""
          , script        = []
-         , afterScript   = []
-         , beforeScript  = []
+         , after         = []
+         , before        = []
          , dependon      = []
          , dependedby    = []
          , loadafter     = []
