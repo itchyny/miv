@@ -65,9 +65,6 @@ instance FromJSON Plugin where
     submodule <- o .:? "submodule" .!= False
     return Plugin {..}
 
-instance ToJSON Plugin where
-  toJSON = const (object [])
-
 defaultPlugin :: Plugin
 defaultPlugin =
   Plugin { name          = ""
