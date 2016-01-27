@@ -47,11 +47,11 @@ rtpName plg = subst (name plg)
 instance FromJSON Plugin where
   parseJSON = withObject "plugin" $ \o -> do
     let name = ""
-    filetypes <- o .: "filetypes" <|> (:[]) <$> o .:? "filetype" .!= ""
-    commands <- o .: "commands" <|> (:[]) <$> o .:? "command" .!= ""
-    functions <- o .: "functions" <|> (:[]) <$> o .:? "function" .!= ""
-    mappings <- o .: "mappings" <|> (:[]) <$> o .:? "mapping" .!= ""
-    mapmodes <- o .: "mapmodes" <|> (:[]) <$> o .:? "mapmode" .!= ""
+    filetypes <- o .: "filetypes" <|> (fmap return <$> o .:? "filetype") .!= []
+    commands <- o .: "commands" <|> (fmap return <$> o .:? "command") .!= []
+    functions <- o .: "functions" <|> (fmap return <$> o .:? "function") .!= []
+    mappings <- o .: "mappings" <|> (fmap return <$> o .:? "mapping") .!= []
+    mapmodes <- o .: "mapmodes" <|> (fmap return <$> o .:? "mapmode") .!= []
     mapleader <- o .:? "mapleader" .!= ""
     insert <- o .:? "insert" .!= False
     enable <- o .:? "enable" .!= ""
