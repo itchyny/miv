@@ -6,7 +6,6 @@ import Data.Aeson
 import Data.Function (on)
 import qualified Data.HashMap.Lazy as HM
 import Data.List (sortBy)
-import Data.Maybe (fromMaybe)
 import Data.Text (Text, lines)
 import Prelude hiding (lines)
 

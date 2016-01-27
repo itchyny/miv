@@ -4,7 +4,6 @@ module Plugin where
 
 import Control.Applicative ((<|>))
 import Data.Aeson
-import Data.Maybe (fromMaybe, maybeToList)
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
 
