@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, toLower)
