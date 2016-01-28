@@ -3,9 +3,8 @@ module Command where
 
 import Data.Monoid ((<>))
 import qualified Data.Text as T
-import Data.Text (Text, pack)
-import Prelude hiding (show)
-import qualified Prelude as P
+import Data.Text (Text, pack, unwords)
+import Prelude hiding (show, unwords)
 import ShowText
 
 data CmdBang = CmdBang
@@ -50,8 +49,8 @@ data CmdRange = CmdRange
 instance ShowText CmdRange where
   show CmdRange = "-range"
   show CmdRangeWhole = "-range=%"
-  show (CmdRangeN n) = "-range=" <> pack (P.show n)
-  show (CmdRangeCount n) = "-count=" <> pack (P.show n)
+  show (CmdRangeN n) = "-range=" <> show n
+  show (CmdRangeCount n) = "-count=" <> show n
   show CmdNoRange = ""
 
 data CmdArg = CmdNonNegArg
@@ -88,7 +87,7 @@ data Command =
      } deriving Eq
 
 instance ShowText Command where
-  show cmd = T.unwords (filter (not . T.null)
+  show cmd = unwords (filter (not . T.null)
            [ "command!"
            , show (cmdBang cmd)
            , show (cmdBar cmd)

@@ -32,9 +32,6 @@ data Plugin =
 instance ShowText Plugin where
   show = rtpName
 
-instance Show Plugin where
-  show = unpack . rtpName
-
 rtpName :: Plugin -> Text
 rtpName plg = subst (name plg)
   where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)

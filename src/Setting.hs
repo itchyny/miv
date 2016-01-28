@@ -16,7 +16,7 @@ data Setting =
              , before         :: [Text]
              , after          :: [Text]
              , filetypeDetect :: HM.HashMap Text Text
-     } deriving (Eq, Show)
+     } deriving Eq
 
 instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
