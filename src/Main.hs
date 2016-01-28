@@ -22,8 +22,8 @@ import System.IO (hFlush, stdout)
 
 import Git
 import Paths_miv (version)
-import qualified Plugin as P
-import qualified Setting as S
+import Plugin
+import Setting
 import ShowText
 import VimScript
 
@@ -73,10 +73,10 @@ getSettingFile
        , "~/vimfiles/_vimrc.yaml"
        ]
 
-getSetting :: IO (Maybe S.Setting)
+getSetting :: IO (Maybe Setting)
 getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= Y.decodeFile . unpack
 
-getSettingWithError :: IO S.Setting
+getSettingWithError :: IO Setting
 getSettingWithError =
   getSettingFile >>= \file ->
     case file of
@@ -181,9 +181,9 @@ isContainedIn xxs@(x:xs) (y:ys) = x == y && xs `isContainedIn` ys || xxs `isCont
 isContainedIn [] _ = True
 isContainedIn _ [] = False
 
-suggestPlugin :: [P.Plugin] -> Text -> IO ()
+suggestPlugin :: [Plugin] -> Text -> IO ()
 suggestPlugin plugin arg = do
-  let plugins = [(levenshtein (unpack arg) (P.show p), p) | p <- plugin]
+  let plugins = [(levenshtein (unpack arg) (T.unpack $ rtpName p), p) | p <- plugin]
       mindist = fst (minimum plugins)
       minplugins = [y | (x, y) <- plugins, x == mindist]
   putStrLn $ "Unknown plugin: " <> arg
@@ -197,39 +197,39 @@ instance ShowText Update where
 
 data UpdateStatus
    = UpdateStatus {
-       installed :: [P.Plugin],
-       updated :: [P.Plugin],
-       nosync :: [P.Plugin],
-       outdated :: [P.Plugin],
-       failed :: [P.Plugin]
+       installed :: [Plugin],
+       updated :: [Plugin],
+       nosync :: [Plugin],
+       outdated :: [Plugin],
+       failed :: [Plugin]
    }
 
 defaultUpdateStatus :: UpdateStatus
 defaultUpdateStatus = UpdateStatus [] [] [] [] []
 
-updatePlugin :: Update -> Maybe [Text] -> S.Setting -> IO ()
+updatePlugin :: Update -> Maybe [Text] -> Setting -> IO ()
 updatePlugin update plugins setting = do
-  let unknownPlugins = filter (`notElem` map show (S.plugin setting)) (fromMaybe [] plugins)
+  let unknownPlugins = filter (`notElem` map show (plugin setting)) (fromMaybe [] plugins)
   unless (null unknownPlugins)
-     $ mapM_ (suggestPlugin (S.plugin setting)) unknownPlugins
+     $ mapM_ (suggestPlugin (plugin setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
   let specified p = show p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
-  let ps = filter filterplugin (S.plugin setting)
+  let ps = filter filterplugin (plugin setting)
   let count xs = if length xs > 1 then "s (" <> pack (P.show (length xs)) <> ")" else ""
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
   status <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) defaultUpdateStatus ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status))
     (putStrLn ("Installed plugin" <> count (installed status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (installed status)))
+     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (installed status)))
   unless (null (updated status))
     (putStrLn ("Updated plugin" <> count (updated status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (updated status)))
+     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (updated status)))
   unless (null (failed status))
     (putStrLn ("Failed plugin" <> count (failed status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . P.name) (reverse (failed status)))
+     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (failed status)))
   generatePluginCode setting
   generateHelpTags setting
 
@@ -240,12 +240,12 @@ cleanAndCreateDirectory directory = do
   removeDirectoryRecursive dir
   createDirectoryIfMissing dir
 
-generateHelpTags :: S.Setting -> IO ()
+generateHelpTags :: Setting -> IO ()
 generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  forM_ (map (\p -> dir <> show p <> "/doc/") (S.plugin setting))
+  forM_ (map (\p -> dir <> show p <> "/doc/") (plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
@@ -254,36 +254,36 @@ generateHelpTags setting = do
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
-lastUpdatePlugin :: Text -> P.Plugin -> IO Integer
+lastUpdatePlugin :: Text -> Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
   let path = dir <> show plugin <> "/.git"
   exists <- doesDirectoryExist path
   status <- gitStatus $ dir <> show plugin
   if exists && status == ExitSuccess then lastUpdate path else return 0
 
-updateOnePlugin :: Integer -> Text -> Update -> Bool -> UpdateStatus -> P.Plugin -> IO UpdateStatus
+updateOnePlugin :: Integer -> Text -> Update -> Bool -> UpdateStatus -> Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified status plugin = do
   let path = dir <> show plugin
-      repo = vimScriptRepo (P.name plugin)
-      cloneCommand = if P.submodule plugin then cloneSubmodule else clone
-      pullCommand = if P.submodule plugin then pullSubmodule else pull
+      repo = vimScriptRepo (name plugin)
+      cloneCommand = if submodule plugin then cloneSubmodule else clone
+      pullCommand = if submodule plugin then pullSubmodule else pull
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
-  if not exists || (gitstatus /= ExitSuccess && not (P.sync plugin))
-     then do putStrLn $ "Installing: " <> P.name plugin
+  if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
+     then do putStrLn $ "Installing: " <> name plugin
              when exists $ removeDirectoryRecursive path
              cloneStatus <- cloneCommand repo path
              created <- doesDirectoryExist path
              if cloneStatus /= ExitSuccess || not created
                 then return status { failed = plugin : failed status }
                 else return status { installed = plugin : installed status }
-     else if update == Install || not (P.sync plugin)
+     else if update == Install || not (sync plugin)
              then return status { nosync = plugin : nosync status }
              else lastUpdate path >>= \lastUpdateTime ->
                   if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                     then do putStrLn $ "Outdated: " <> P.name plugin
+                     then do putStrLn $ "Outdated: " <> name plugin
                              return status { outdated = plugin : outdated status }
-                     else do putStrLn $ "Pulling: " <> P.name plugin
+                     else do putStrLn $ "Pulling: " <> name plugin
                              pullStatus <- pullCommand path
                              newUpdateTime <- lastUpdate path
                              return $ if pullStatus /= ExitSuccess
@@ -296,21 +296,21 @@ vimScriptRepo :: Text -> Text
 vimScriptRepo name | T.any (=='/') name = name
                    | otherwise = "vim-scripts/" <> name
 
-listPlugin :: S.Setting -> IO ()
-listPlugin setting = mapM_ putStrLn $ space $ map format $ S.plugin setting
-  where format p = [show p, P.name p, gitUrl (vimScriptRepo (P.name p))]
+listPlugin :: Setting -> IO ()
+listPlugin setting = mapM_ putStrLn $ space $ map format $ plugin setting
+  where format p = [show p, name p, gitUrl (vimScriptRepo (name p))]
         space xs =
           let max0 = maximum (map (T.length . (!!0)) xs) + 1
               max1 = maximum (map (T.length . (!!1)) xs) + 1
               in map (\(as:bs:cs:_) -> as <> T.replicate (max0 - T.length as) " " <> bs <> T.replicate (max1 - T.length bs) " " <> cs) xs
 
-cleanDirectory :: S.Setting -> IO ()
+cleanDirectory :: Setting -> IO ()
 cleanDirectory setting = do
   createPluginDirectory
   dir <- pluginDirectory
   createDirectoryIfMissing dir
   cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map show (S.plugin setting)
+  let paths = "." : ".." : "miv" : map show (plugin setting)
       delpath' = [ dir <> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
@@ -346,7 +346,7 @@ saveScript (dir, place, code) =
             , "let &cpo = s:save_cpo"
             , "unlet s:save_cpo" ]
 
-generatePluginCode :: S.Setting -> IO ()
+generatePluginCode :: Setting -> IO ()
 generatePluginCode setting = do
   dir <- fmap (<>"miv/") pluginDirectory
   createDirectoryIfMissing dir
@@ -357,15 +357,15 @@ generatePluginCode setting = do
         (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
 
-eachPlugin :: Text -> S.Setting -> IO ()
+eachPlugin :: Text -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  result <- foldM (eachOnePlugin command dir) (P.defaultPlugin, ExitSuccess) (S.plugin setting)
+  result <- foldM (eachOnePlugin command dir) (defaultPlugin, ExitSuccess) (plugin setting)
   when (snd result /= ExitSuccess)
-     $ putStrLn "Error:" >> putStrLn ("  " <> P.name (fst result))
+     $ putStrLn "Error:" >> putStrLn ("  " <> name (fst result))
 
-eachOnePlugin :: Text -> Text -> (P.Plugin, ExitCode) -> P.Plugin -> IO (P.Plugin, ExitCode)
+eachOnePlugin :: Text -> Text -> (Plugin, ExitCode) -> Plugin -> IO (Plugin, ExitCode)
 eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 eachOnePlugin command dir (_, _) plugin = do
   let path = dir <> show plugin
@@ -378,9 +378,9 @@ eachOnePlugin command dir (_, _) plugin = do
 eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
-pathPlugin :: [Text] -> S.Setting -> IO ()
+pathPlugin :: [Text] -> Setting -> IO ()
 pathPlugin plugins setting = do
-  let ps = filter (\p -> show p `elem` plugins || null plugins) (S.plugin setting)
+  let ps = filter (\p -> show p `elem` plugins || null plugins) (plugin setting)
   dir <- pluginDirectory
   forM_ ps (\plugin -> putStrLn $ dir <> show plugin)
 
