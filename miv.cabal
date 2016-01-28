@@ -19,6 +19,9 @@ executable miv
                       , Command
                       , Mapping
                       , ShowText
+                      , VimScript
+                      , Git
+                      , Paths_miv
   build-depends:        base >= 4.0 && < 5
                       , ghc-prim
                       , process
