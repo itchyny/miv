@@ -1,9 +1,15 @@
 language: haskell
 
-ghc:
-  - 7.6
-  - 7.4
-  # - 7.0
+sudo: false
 
-after_script:
-  - cat dist/test/miv-0.0.0-spec.log
+cache:
+  directories:
+    - $HOME/.stack
+
+before_install:
+  - mkdir -p ~/.local/bin
+  - export PATH=$HOME/.local/bin:$PATH
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+script:
+  - stack --no-terminal --skip-ghc-check test
