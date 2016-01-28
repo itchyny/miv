@@ -8,10 +8,10 @@ import Data.List (sortBy)
 import Data.Text (Text, lines)
 import Prelude hiding (lines)
 
-import qualified Plugin as P
+import Plugin
 
 data Setting =
-     Setting { plugin         :: [P.Plugin]
+     Setting { plugin         :: [Plugin]
              , filetype       :: HM.HashMap Text [Text]
              , before         :: [Text]
              , after          :: [Text]
@@ -26,7 +26,7 @@ instance FromJSON Setting where
     after <- lines <$> o .:? "after" .!= ""
     filetypeDetect <- o .:? "filetypeDetect" .!= HM.empty
     return Setting {..}
-      where pluginHashMapToList = sortWith P.name . HM.foldlWithKey' (\a k v -> v { P.name = k } : a) []
+      where pluginHashMapToList = sortWith name . HM.foldlWithKey' (\a k v -> v { name = k } : a) []
 
 sortWith :: Ord b => (a -> b) -> [a] -> [a]
 sortWith = sortBy . on compare
