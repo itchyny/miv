@@ -1,5 +1,3 @@
-language: haskell
-
 sudo: false
 
 cache:
