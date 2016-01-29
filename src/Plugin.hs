@@ -61,25 +61,3 @@ instance FromJSON Plugin where
     loadbefore <- o .:? "loadbefore" .!= []
     submodule <- o .:? "submodule" .!= False
     return Plugin {..}
-
-defaultPlugin :: Plugin
-defaultPlugin =
-  Plugin { name          = ""
-         , filetypes     = []
-         , commands      = []
-         , functions     = []
-         , mappings      = []
-         , mapmodes      = []
-         , insert        = False
-         , enable        = ""
-         , sync          = False
-         , mapleader     = ""
-         , script        = []
-         , after         = []
-         , before        = []
-         , dependon      = []
-         , dependedby    = []
-         , loadafter     = []
-         , loadbefore    = []
-         , submodule     = False
-  }

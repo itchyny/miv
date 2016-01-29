@@ -360,7 +360,7 @@ eachPlugin :: Text -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  result <- foldM (eachOnePlugin command dir) (defaultPlugin, ExitSuccess) (plugin setting)
+  result <- foldM (eachOnePlugin command dir) (undefined, ExitSuccess) (plugin setting)
   when (snd result /= ExitSuccess)
      $ putStrLn "Error:" >> putStrLn ("  " <> name (fst result))
 
