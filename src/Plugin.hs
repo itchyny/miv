@@ -42,7 +42,7 @@ rtpName plg = subst (name plg)
 
 instance FromJSON Plugin where
   parseJSON = withObject "plugin" $ \o -> do
-    let name = ""
+    name <- o .:? "name" .!= ""
     filetypes <- o .: "filetypes" <|> (fmap return <$> o .:? "filetype") .!= []
     commands <- o .: "commands" <|> (fmap return <$> o .:? "command") .!= []
     functions <- o .: "functions" <|> (fmap return <$> o .:? "function") .!= []
