@@ -38,20 +38,11 @@ filetype plugin indent on
 ```
 
 Example `~/.vimrc.yaml`:
-```
+```yaml
 plugin:
 
-  Valloric/YouCompleteMe: 
-    submodule: true
-    commands: 
-      - YcmCompleter
-      - YcmRestartServer
-      - YcmDiags
-      - YcmShowDetailedDiagnostic
-      - YcmDebugInfo
-
   Shougo/neocomplete.vim:
-    enable: has('lua') && v:version > 703
+    enable: has('lua')
     before: |
       let g:neocomplete#enable_at_startup = 1
       let g:neocomplete#enable_smart_case = 1
@@ -61,12 +52,15 @@ plugin:
     command: QuickRun
     mapping: <Plug>(quickrun)
     mapleader: \
-    dependon:
-      - vimproc
+    dependon: vimproc
+    script: |
+      noremap <Leader>r <Plug>(quickrun)
+    before: |
+      let g:quickrun_config = {'_': {'runner': 'vimproc', 'runner/vimproc/updatetime': 200, 'split': 'vertical', 'into': 1}}
 
   Shougo/vimfiler:
     mapleader: \
-    commands:
+    command:
       - VimFiler
       - VimFilerTab
       - VimFilerBufferDir
@@ -74,27 +68,26 @@ plugin:
     dependon:
       - vimproc
       - unite
+    script: |
+      nnoremap <silent> <Leader>f :<C-u>VimFilerBufferDir -auto-cd<CR>
     before: |
       let g:vimfiler_as_default_explorer = 1
       let g:vimfiler_sort_type = 'TIME'
-    script: |
-      nnoremap <silent> <Leader>f :<C-u>VimFilerBufferDir -auto-cd<CR>
 
   Shougo/vinarise:
-    commands:
-      - Vinarise
+    command: Vinarise
+    loadbefore: vimfiler
 
   Shougo/unite.vim:
-    commands:
-      - Unite
+    command: Unite
     mapleader: ","
     function: unite
-    before: |
-      let g:unite_force_overwrite_statusline = 0
     script: |
       nnoremap <silent><C-n> :<C-u>Unite file/new directory/new<CR>
       nnoremap <silent><C-o> :<C-u>Unite file file/new<CR>
       nnoremap <silent><S-l> :<C-u>Unite line<CR>
+    before: |
+      let g:unite_force_overwrite_statusline = 0
     after: |
       call unite#custom#profile('default', 'context', {
             \ 'start_insert' : 1,
@@ -106,33 +99,30 @@ plugin:
       - unite-highlight
 
   Shougo/unite-build:
-    loadafter:
-      - unite
+    loadafter: unite
 
   ujihisa/unite-colorscheme:
-    loadafter:
-      - unite
+    loadafter: unite
 
   osyo-manga/unite-highlight:
-    loadafter:
-      - unite
+    loadafter: unite
 
   Shougo/vimshell.vim:
-    commands:
+    command:
       - VimShell
+      - VimShellBufferDir
+      - VimShellInteractive
       - VimShellPop
       - VimShellTab
-      - VimShellInteractive
     function: vimshell
     mapleader: ;
-    dependon:
-      - vimproc
-    before: |
-      let g:vimshell_popup_command = 'top new'
-      let g:vimshell_split_command = 'vsplit'
+    dependon: vimproc
     script: |
       nnoremap <silent> <Leader>s :<C-u>VimShellBufferDir<CR>
       nnoremap <silent> H :<C-u>VimShellBufferDir -popup<CR>
+    before: |
+      let g:vimshell_popup_command = 'top new'
+      let g:vimshell_split_command = 'vsplit'
 
   Shougo/vimproc.vim:
     build: make
@@ -148,6 +138,13 @@ plugin:
   tyru/capture.vim:
     command: Capture
 
+  itchyny/lightline.vim:
+    before: |
+      let g:lightline = {
+            \   'colorscheme': 'wombat',
+            \   'mode_map':{ 'c': 'NORMAL' },
+            \ }
+
   itchyny/calendar.vim:
     mapleader: ","
     command: Calendar
@@ -156,14 +153,12 @@ plugin:
       map <silent> <Leader>z <Plug>(calendar)
     before: |
       let g:calendar_views = [ 'year', 'month', 'day_3', 'clock' ]
-      let g:calendar_google_calendar = 1
-      let g:calendar_google_task = 1
 
   elzr/vim-json:
     filetype: json
 
   mattn/emmet-vim:
-    filetypes: 
+    filetype:
       - html
       - css
     before: |
@@ -189,8 +184,7 @@ plugin:
   kana/vim-textobj-user: {}
 
   kana/vim-textobj-entire:
-    dependon:
-      - textobj-user
+    dependon: textobj-user
     mapmodes:
       - o
       - v
@@ -201,8 +195,7 @@ plugin:
       - ae
 
   kana/vim-textobj-line:
-    dependon:
-      - textobj-user
+    dependon: textobj-user
     mapmodes:
       - o
       - v
@@ -211,6 +204,34 @@ plugin:
       - <Plug>(textobj-line-i)
       - il
       - al
+
+before: |
+  if v:version < 703
+    finish
+  endif
+
+  let g:is_bash = 1
+
+  let g:loaded_2html_plugin = 1
+  let g:loaded_rrhelper = 1
+
+after: |
+  let g:mapleader = ','
+
+filetype:
+  vim: |
+    setlocal foldmethod=marker
+  c: |
+    setlocal ofu=ccomplete#Complete
+  html: |
+    setlocal ofu=htmlcomplete#CompleteTags
+  css: |
+    setlocal ofu=csscomplete#CompleteCSS
+    setlocal iskeyword=37,45,48-57,95,a-z,A-Z,192-255
+  make: |
+    setlocal noexpandtab
+  sh: |
+    setlocal iskeyword=36,45,48-57,64,95,a-z,A-Z,192-255
 ```
 
 ## `miv` subcommands
