@@ -8,6 +8,12 @@
  $ stack install
 ```
 
+## Author
+itchyny (https://github.com/itchyny)
+
+## License
+This software is released under the MIT License, see LICENSE.
+
 ## Migration guide for users of older miv
 I've changed some interfaces of miv recently. Configuration files for older miv cannot be recognized correctly by the new one. I'm sorry. The following steps are the changes.
 
