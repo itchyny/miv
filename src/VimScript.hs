@@ -11,12 +11,13 @@ import Data.Monoid (Monoid (..), (<>))
 import Data.Text (Text, unpack, unwords, singleton)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Prelude hiding (show, unwords)
+import Prelude hiding (show, unwords, read)
 
 import qualified Command as C
 import qualified Mapping as M
 import Mode
 import qualified Plugin as P
+import ReadText
 import qualified Setting as S
 import ShowText
 
@@ -161,7 +162,7 @@ gatherMapping plg
                         <> singleQuote (show mode) <> ")<CR>"
                   , M.mapMode    = mode } | c <- P.mappings plg]
           escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
-          modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map (read . unpack) (P.mapmodes plg)
+          modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map read (P.mapmodes plg)
           in concat [map (show . f) modes | f <- genMapping]
   | otherwise = []
 

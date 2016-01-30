@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mode where
 
+import Data.Text (unpack)
+
+import ReadText
 import ShowText
 
 data Mode = NormalMode
@@ -31,17 +34,17 @@ instance ShowText Mode where
   show InesrtVisualMode = "iv"
   show InsertSelectMode = "is"
 
-instance Read Mode where
-  readsPrec _ "n"  = [(NormalMode, "")]
-  readsPrec _ "v"  = [(VisualMode, "")]
-  readsPrec _ "s"  = [(SelectMode, "")]
-  readsPrec _ "i"  = [(InsertMode, "")]
-  readsPrec _ "c"  = [(CmdlineMode, "")]
-  readsPrec _ "ex" = [(ExMode, "")]
-  readsPrec _ "o"  = [(OperatorPendingMode, "")]
-  readsPrec _ "r"  = [(ReplaceMode, "")]
-  readsPrec _ "vr" = [(VirtualReplaceMode, "")]
-  readsPrec _ "in" = [(InsertNormalMode, "")]
-  readsPrec _ "iv" = [(InesrtVisualMode, "")]
-  readsPrec _ "is" = [(InsertSelectMode, "")]
-  readsPrec _ _    = []
+instance ReadText Mode where
+  read "n"  = NormalMode
+  read "v"  = VisualMode
+  read "s"  = SelectMode
+  read "i"  = InsertMode
+  read "c"  = CmdlineMode
+  read "ex" = ExMode
+  read "o"  = OperatorPendingMode
+  read "r"  = ReplaceMode
+  read "vr" = VirtualReplaceMode
+  read "in" = InsertNormalMode
+  read "iv" = InesrtVisualMode
+  read "is" = InsertSelectMode
+  read m    = error $ "unknown mode: " ++ unpack m
