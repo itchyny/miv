@@ -8,14 +8,6 @@
  $ stack install
 ```
 
-### AUR
-
-miv is available in the [AUR](https://aur.archlinux.org/packages/miv-git/):
-
-```
- $ pacaur -S miv-git
-```
-
 ## Migration guide for users of older miv
 I've changed some interfaces of miv recently. Configuration files for older miv cannot be recognized correctly by the new one. I'm sorry. The following steps are the changes.
 
