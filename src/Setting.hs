@@ -15,7 +15,6 @@ data Setting =
              , filetype       :: HM.HashMap Text [Text]
              , before         :: [Text]
              , after          :: [Text]
-             , filetypeDetect :: HM.HashMap Text Text
      } deriving Eq
 
 instance FromJSON Setting where
@@ -24,7 +23,6 @@ instance FromJSON Setting where
     filetype <- HM.map lines <$> o .:? "filetype" .!= HM.empty
     before <- lines <$> o .:? "before" .!= ""
     after <- lines <$> o .:? "after" .!= ""
-    filetypeDetect <- o .:? "filetypeDetect" .!= HM.empty
     return Setting {..}
       where pluginHashMapToList = sortWith name . HM.foldlWithKey' (\a k v -> v { name = k } : a) []
 
