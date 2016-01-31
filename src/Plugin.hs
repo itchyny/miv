@@ -4,7 +4,7 @@ module Plugin where
 import Control.Applicative ((<|>))
 import Data.Aeson
 import qualified Data.Text as T
-import Data.Text (Text, unpack)
+import Data.Text (Text)
 
 import ShowText
 

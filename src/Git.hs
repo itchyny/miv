@@ -11,7 +11,6 @@ module Git
   )
   where
 
-import Data.Functor ((<$>))
 import Data.Monoid ((<>))
 import Data.Text (Text, unwords, unpack)
 import Prelude hiding (unwords)

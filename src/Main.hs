@@ -3,7 +3,6 @@ module Main where
 
 import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
 import qualified Control.Monad.Parallel as P
-import Data.Functor ((<$>))
 import Data.List (foldl', nub, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
@@ -336,8 +335,7 @@ cleanDirectory setting = do
 
 saveScript :: (Text, Place, [Text]) -> IO ()
 saveScript (dir, place, code) =
-  let isftplugin = isFtplugin place
-      relname = show place
+  let relname = show place
       name = unpack (dir <> relname)
       isallascii = all (T.all (<='~')) code in
   getZonedTime >>= \time ->

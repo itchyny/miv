@@ -2,13 +2,12 @@
 module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, toLower)
-import Data.Functor ((<$>))
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.List (foldl')
 import Data.Maybe (mapMaybe)
-import Data.Monoid (Monoid (..), (<>))
-import Data.Text (Text, unpack, unwords, singleton)
+import Data.Monoid ((<>))
+import Data.Text (Text, unwords, singleton)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Prelude hiding (show, unwords, read)
