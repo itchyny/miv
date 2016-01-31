@@ -13,7 +13,7 @@ description:            The miv command is a cli tool to manage Vim plugins.
 executable miv
   hs-source-dirs:       src
   main-is:              Main.hs
-  ghc-options:          -threaded
+  ghc-options:          -threaded -Werror -Wall
   other-modules:        Plugin
                       , Setting
                       , Mode
