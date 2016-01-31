@@ -13,6 +13,7 @@ import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
 import qualified Data.Yaml as Y
+import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unwords, unlines, putStrLn, putStr, show)
 import qualified System.Directory as SD
 import qualified System.Environment as SE
@@ -213,6 +214,7 @@ instance Monoid UpdateStatus where
 
 updatePlugin :: Update -> Maybe [Text] -> Setting -> IO ()
 updatePlugin update plugins setting = do
+  setNumCapabilities =<< getNumProcessors
   let unknownPlugins = filter (`notElem` map show (plugin setting)) (fromMaybe [] plugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (plugin setting)) unknownPlugins
