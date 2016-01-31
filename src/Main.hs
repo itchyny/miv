@@ -133,11 +133,13 @@ usage = [ nameversion
         ]
      <> map (T.append "  " . show) arguments
      <> [ ""
+        , "You can install the plugins by the following command:"
+        , "  miv install"
+        , ""
         , "You can update the plugins by the following command:"
         , "  miv update"
         , ""
         , "You can specify the name of plugins:"
-        , "  miv install plugin1 plugin2"
         , "  miv update plugin1 plugin2"
         , ""
         , "Normally, outdated plugins are ignored but"
