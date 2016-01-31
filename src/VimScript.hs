@@ -79,7 +79,7 @@ gatherScript setting = addAutoloadNames
                     <> gatherInsertEnter setting
                     <> filetypeScript (S.filetype setting)
                     <> afterScript setting
-  where plugins = S.plugin setting
+  where plugins = S.plugins setting
 
 gatherBeforeAfterScript :: [P.Plugin] -> VimScript
 gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
@@ -172,7 +172,7 @@ afterScript setting = VimScript (HM.singleton Plugin (S.after setting))
 
 filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting
-  = HM.foldrWithKey f mempty (filetypeLoadPlugins (S.plugin setting) HM.empty)
+  = HM.foldrWithKey f mempty (filetypeLoadPlugins (S.plugins setting) HM.empty)
   where
     f ft plg val =
       case getHeadChar ft of
@@ -207,7 +207,7 @@ filetypeLoadPlugins [] fts = fts
 
 gatherInsertEnter :: S.Setting -> VimScript
 gatherInsertEnter setting
-  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugin setting, P.insert p ]))
+  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugins setting, P.insert p ]))
   where f [] = []
         f plgs = "\" InsertEnter"
                : "function! s:insertEnter() abort"
@@ -225,7 +225,7 @@ gatherInsertEnter setting
 
 gatherFuncUndefined :: S.Setting -> VimScript
 gatherFuncUndefined setting
-  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugin setting, not (null (P.functions p))]))
+  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugins setting, not (null (P.functions p))]))
   where f [] = []
         f plgs = "\" FuncUndefined"
                : "function! s:funcUndefined() abort"

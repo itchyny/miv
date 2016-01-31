@@ -214,14 +214,14 @@ instance Monoid UpdateStatus where
 updatePlugin :: Update -> Maybe [Text] -> Setting -> IO ()
 updatePlugin update plugins setting = do
   setNumCapabilities =<< getNumProcessors
-  let unknownPlugins = filter (`notElem` map show (plugin setting)) (fromMaybe [] plugins)
+  let unknownPlugins = filter (`notElem` map show (plugins setting)) (fromMaybe [] maybePlugins)
   unless (null unknownPlugins)
-     $ mapM_ (suggestPlugin (plugin setting)) unknownPlugins
+     $ mapM_ (suggestPlugin (plugins setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
   let specified p = rtpName p `elem` fromMaybe [] plugins || plugins == Just []
   let filterplugin p = isNothing plugins || specified p
-  let ps = filter filterplugin (plugin setting)
+  let ps = filter filterplugin (plugins setting)
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- mconcat <$> mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
@@ -253,7 +253,7 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir <> show p <> "/doc/") (plugin setting))
+  P.forM_ (map (\p -> dir <> show p <> "/doc/") (plugins setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
@@ -305,7 +305,7 @@ vimScriptRepo name | T.any (=='/') name = name
                    | otherwise = "vim-scripts/" <> name
 
 listPlugin :: Setting -> IO ()
-listPlugin setting = mapM_ putStrLn $ space $ map format $ plugin setting
+listPlugin setting = mapM_ putStrLn $ space $ map format $ plugins setting
   where format p = [show p, name p, gitUrl (vimScriptRepo (name p))]
         space xs =
           let max0 = maximum (map (T.length . (!!0)) xs) + 1
@@ -318,7 +318,7 @@ cleanDirectory setting = do
   dir <- pluginDirectory
   createDirectoryIfMissing dir
   cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map show (plugin setting)
+  let paths = "." : ".." : "miv" : map show (plugins setting)
       delpath' = [ dir <> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
@@ -368,7 +368,7 @@ eachPlugin :: Text -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  result <- foldM (eachOnePlugin command dir) (undefined, ExitSuccess) (plugin setting)
+  result <- foldM (eachOnePlugin command dir) (undefined, ExitSuccess) (plugins setting)
   when (snd result /= ExitSuccess)
      $ putStrLn "Error:" >> putStrLn ("  " <> name (fst result))
 
@@ -386,8 +386,8 @@ eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [Text] -> Setting -> IO ()
-pathPlugin plugins setting = do
-  let ps = filter (\p -> show p `elem` plugins || null plugins) (plugin setting)
+pathPlugin plugins' setting = do
+  let ps = filter (\p -> show p `elem` plugins' || null plugins') (plugins setting)
   dir <- pluginDirectory
   forM_ ps (\plugin -> putStrLn $ dir <> show plugin)
 

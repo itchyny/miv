@@ -11,7 +11,7 @@ import Prelude hiding (lines)
 import Plugin
 
 data Setting =
-     Setting { plugin         :: [Plugin]
+     Setting { plugins        :: [Plugin]
              , filetype       :: HM.HashMap Text [Text]
              , before         :: [Text]
              , after          :: [Text]
@@ -19,7 +19,7 @@ data Setting =
 
 instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
-    plugin <- pluginHashMapToList <$> o .:? "plugin" .!= HM.empty
+    plugins <- pluginHashMapToList <$> o .:? "plugin" .!= HM.empty
     filetype <- HM.map lines <$> o .:? "filetype" .!= HM.empty
     before <- lines <$> o .:? "before" .!= ""
     after <- lines <$> o .:? "after" .!= ""
