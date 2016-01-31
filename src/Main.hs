@@ -2,8 +2,9 @@
 module Main where
 
 import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
+import qualified Control.Monad.Parallel as P
 import Data.Functor ((<$>))
-import Data.List (foldl', nub)
+import Data.List (foldl', nub, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import Data.Text (Text, unwords, unlines, pack, unpack)
@@ -221,8 +222,8 @@ updatePlugin update plugins setting = do
   let filterplugin p = isNothing plugins || specified p
   let ps = filter filterplugin (plugin setting)
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
-  time <- maximum <$> mapM (lastUpdatePlugin dir) ps
-  status <- mconcat <$> mapM (\p -> updateOnePlugin time dir update (specified p) p) ps
+  time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
+  status <- mconcat <$> mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status))
     (putStrLn ("Installed plugin" <> count (installed status) <> ": ")
@@ -236,6 +237,9 @@ updatePlugin update plugins setting = do
   generatePluginCode setting
   generateHelpTags setting
 
+mapM' :: P.MonadParallel m => (a -> m b) -> [a] -> m [b]
+mapM' f = fmap mconcat . P.mapM (mapM f) . transpose . takeWhile (not . null) . unfoldr (Just . splitAt 8)
+
 cleanAndCreateDirectory :: Text -> IO ()
 cleanAndCreateDirectory directory = do
   let dir = directory
@@ -248,7 +252,7 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  forM_ (map (\p -> dir <> show p <> "/doc/") (plugin setting))
+  P.forM_ (map (\p -> dir <> show p <> "/doc/") (plugin setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
@@ -356,8 +360,8 @@ generatePluginCode setting = do
   cleanAndCreateDirectory (dir <> "plugin/")
   cleanAndCreateDirectory (dir <> "autoload/miv/")
   cleanAndCreateDirectory (dir <> "ftplugin/")
-  mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
-        (vimScriptToList (gatherScript setting))
+  P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
+          (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
 
 eachPlugin :: Text -> Setting -> IO ()
