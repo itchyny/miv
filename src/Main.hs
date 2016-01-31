@@ -205,8 +205,10 @@ data UpdateStatus
        failed :: [Plugin]
    }
 
-defaultUpdateStatus :: UpdateStatus
-defaultUpdateStatus = UpdateStatus [] [] [] [] []
+instance Monoid UpdateStatus where
+  mempty = UpdateStatus [] [] [] [] []
+  mappend (UpdateStatus i u n o f) (UpdateStatus i' u' n' o' f')
+    = UpdateStatus (i <> i') (u <> u') (n <> n') (o <> o') (f <> f')
 
 updatePlugin :: Update -> Maybe [Text] -> Setting -> IO ()
 updatePlugin update plugins setting = do
@@ -220,7 +222,7 @@ updatePlugin update plugins setting = do
   let ps = filter filterplugin (plugin setting)
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
   time <- maximum <$> mapM (lastUpdatePlugin dir) ps
-  status <- foldM (\s p -> updateOnePlugin time dir update (specified p) s p) defaultUpdateStatus ps
+  status <- mconcat <$> mapM (\p -> updateOnePlugin time dir update (specified p) p) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status))
     (putStrLn ("Installed plugin" <> count (installed status) <> ": ")
@@ -262,8 +264,8 @@ lastUpdatePlugin dir plugin = do
   status <- gitStatus $ dir <> show plugin
   if exists && status == ExitSuccess then lastUpdate path else return 0
 
-updateOnePlugin :: Integer -> Text -> Update -> Bool -> UpdateStatus -> Plugin -> IO UpdateStatus
-updateOnePlugin time dir update specified status plugin = do
+updateOnePlugin :: Integer -> Text -> Update -> Bool -> Plugin -> IO UpdateStatus
+updateOnePlugin time dir update specified plugin = do
   let path = dir <> show plugin
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
@@ -276,22 +278,22 @@ updateOnePlugin time dir update specified status plugin = do
              cloneStatus <- cloneCommand repo path
              created <- doesDirectoryExist path
              if cloneStatus /= ExitSuccess || not created
-                then return status { failed = plugin : failed status }
-                else return status { installed = plugin : installed status }
+                then return mempty { failed = [plugin] }
+                else return mempty { installed = [plugin] }
      else if update == Install || not (sync plugin)
-             then return status { nosync = plugin : nosync status }
+             then return mempty { nosync = [plugin] }
              else lastUpdate path >>= \lastUpdateTime ->
                   if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
                      then do putStrLn $ "Outdated: " <> name plugin
-                             return status { outdated = plugin : outdated status }
+                             return mempty { outdated = [plugin] }
                      else do putStrLn $ "Pulling: " <> name plugin
                              pullStatus <- pullCommand path
                              newUpdateTime <- lastUpdate path
                              return $ if pullStatus /= ExitSuccess
-                                         then status { failed = plugin : failed status }
+                                         then mempty { failed = [plugin] }
                                          else if newUpdateTime <= lastUpdateTime
-                                                 then status
-                                                 else status { updated = plugin : updated status }
+                                                 then mempty
+                                                 else mempty { updated = [plugin] }
 
 vimScriptRepo :: Text -> Text
 vimScriptRepo name | T.any (=='/') name = name
