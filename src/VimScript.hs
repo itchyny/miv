@@ -94,8 +94,8 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
             | null (P.before p) && null (P.after p) = gatherScripts ps (vs, hm)
             | otherwise = gatherScripts ps (vs <> vs', HM.insert name hchar hm)
       where
-        name = T.filter isAlphaNum (T.toLower (P.rtpName p))
-        hchar | null (loadScript p) = maybe "_" singleton $ getHeadChar $ P.rtpName p
+        name = T.filter isAlphaNum (T.toLower (show p))
+        hchar | null (loadScript p) = maybe "_" singleton $ getHeadChar $ show p
               | otherwise = "_"
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
         au = Autoload hchar
@@ -114,7 +114,7 @@ gather :: Text -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
 gather name f plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
-   <> [ "      \\ " <> singleQuote (P.rtpName p)
+   <> [ "      \\ " <> singleQuote (show p)
                     <> ": [ " <> T.intercalate ", " (map singleQuote (f p))  <> " ],"
                                                                | p <- plg, not (null (f p)) ]
    <> [ "      \\ }" ])
@@ -132,14 +132,14 @@ loadScript :: P.Plugin -> [Text]
 loadScript plg
   | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
              , P.loadafter plg, P.loadbefore plg ] && not (P.insert plg)
-  = ["call miv#load(" <> singleQuote (P.rtpName plg) <> ")"]
+  = ["call miv#load(" <> singleQuote (show plg) <> ")"]
   | otherwise = []
 
 gatherCommand :: P.Plugin -> [Text]
 gatherCommand plg
   | not (null (P.commands plg))
     = [show (C.defaultCommand { C.cmdName = c
-        , C.cmdRepText = unwords ["call miv#command(" <> singleQuote (P.rtpName plg) <> ","
+        , C.cmdRepText = unwords ["call miv#command(" <> singleQuote (show plg) <> ","
                                , singleQuote c <> ","
                                , singleQuote "<bang>" <> ","
                                , "<q-args>,"
@@ -155,7 +155,7 @@ gatherMapping plg
                M.defaultMapping
                   { M.mapName    = c
                   , M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
-                        <> singleQuote (P.rtpName plg) <> ", "
+                        <> singleQuote (show plg) <> ", "
                         <> singleQuote c <> ", "
                         <> singleQuote (show mode) <> ")<CR>"
                   , M.mapMode    = mode } | c <- P.mappings plg]
@@ -184,7 +184,7 @@ filetypeLoader setting
                        (("function! " <> funcname <> "() abort")
                        : "  setl ft="
                        :  concat [wrapEnable b
-                       [ "  call miv#load(" <> singleQuote (P.rtpName b) <> ")"] | b <- plg]
+                       [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
                     <> [ "  autocmd! MivFileTypeLoad" <> ft
                        , "  augroup! MivFileTypeLoad" <> ft
                        , "  setl ft=" <> ft
@@ -211,7 +211,7 @@ gatherInsertEnter setting
   where f [] = []
         f plgs = "\" InsertEnter"
                : "function! s:insertEnter() abort"
-             : [ "  call miv#load(" <> singleQuote (P.rtpName p) <> ")" | p <- plgs ]
+             : [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plgs :: [P.Plugin] ]
             <> [ "  autocmd! MivInsertEnter"
                , "  augroup! MivInsertEnter"
                , "  silent! doautocmd InsertEnter"
@@ -232,7 +232,7 @@ gatherFuncUndefined setting
                : "  let f = expand('<amatch>')"
                : concat [
                [ "  if f =~# " <> singleQuote q
-               , "    call miv#load(" <> singleQuote (P.rtpName p) <> ")"
+               , "    call miv#load(" <> singleQuote (show p) <> ")"
                , "  endif" ] | (p, q) <- concatMap (\q -> map ((,) q) (P.functions q)) plgs]
             <> [ "endfunction"
                , ""

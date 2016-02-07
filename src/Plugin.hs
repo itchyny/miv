@@ -30,18 +30,15 @@ data Plugin =
      } deriving (Eq, Ord)
 
 instance ShowText Plugin where
-  show = rtpName
+  show plg = subst (name plg)
+    where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
+                  | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
+                  | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
+                  | "vim-" `T.isPrefixOf` s = T.drop 4 s
+                  | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
 
-rtpName :: Plugin -> Text
-rtpName plg = subst (name plg)
-  where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
-                | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
-                | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
-                | "vim-" `T.isPrefixOf` s = T.drop 4 s
-                | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
-
-rtpName' :: Plugin -> String
-rtpName' = unpack . rtpName
+rtpName :: Plugin -> String
+rtpName = unpack . ShowText.show
 
 instance FromJSON Plugin where
   parseJSON = withObject "plugin" $ \o -> do

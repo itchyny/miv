@@ -163,7 +163,7 @@ isContainedIn _ [] = False
 
 suggestPlugin :: [Plugin] -> String -> IO ()
 suggestPlugin plugin arg = do
-  let distplugins = [(levenshtein arg (rtpName' p), p) | p <- plugin]
+  let distplugins = [(levenshtein arg (rtpName p), p) | p <- plugin]
       mindist = fst (minimum distplugins)
       minplugins = [y | (x, y) <- distplugins, x == mindist]
   putStrLn $ "Unknown plugin: " <> pack arg
@@ -192,12 +192,12 @@ instance Monoid UpdateStatus where
 updatePlugin :: Update -> Maybe [String] -> Setting -> IO ()
 updatePlugin update maybePlugins setting = do
   setNumCapabilities =<< getNumProcessors
-  let unknownPlugins = filter (`notElem` map rtpName' (plugins setting)) (fromMaybe [] maybePlugins)
+  let unknownPlugins = filter (`notElem` map rtpName (plugins setting)) (fromMaybe [] maybePlugins)
   unless (null unknownPlugins)
      $ mapM_ (suggestPlugin (plugins setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
-  let specified p = rtpName' p `elem` fromMaybe [] maybePlugins || maybePlugins == Just []
+  let specified p = rtpName p `elem` fromMaybe [] maybePlugins || maybePlugins == Just []
   let filterplugin p = isNothing maybePlugins || specified p
   let ps = filter filterplugin (plugins setting)
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
@@ -231,7 +231,7 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir <> rtpName' p <> "/doc/") (plugins setting))
+  P.forM_ (map (\p -> dir <> rtpName p <> "/doc/") (plugins setting))
     $ \path ->
         doesDirectoryExist path
           >>= \exists -> when exists $ void
@@ -242,14 +242,14 @@ generateHelpTags setting = do
 
 lastUpdatePlugin :: FilePath -> Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir <> rtpName' plugin <> "/.git"
+  let path = dir <> rtpName plugin <> "/.git"
   exists <- doesDirectoryExist path
-  status <- gitStatus $ dir <> rtpName' plugin
+  status <- gitStatus $ dir <> rtpName plugin
   if exists && status == ExitSuccess then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified plugin = do
-  let path = dir <> rtpName' plugin
+  let path = dir <> rtpName plugin
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
       pullCommand = if submodule plugin then pullSubmodule else pull
@@ -346,7 +346,7 @@ gatherFtdetectScript setting = do
   dir <- pluginDirectory
   cleanAndCreateDirectory (dir <> "miv/ftdetect/")
   forM_ (plugins setting) $ \plugin -> do
-    let path = rtpName' plugin
+    let path = rtpName plugin
     exists <- doesDirectoryExist (dir <> path <> "/ftdetect")
     when exists $ do
       files <- (\\ [".", ".."]) <$> getDirectoryContents (dir <> path <> "/ftdetect")
@@ -365,7 +365,7 @@ eachPlugin command setting = do
 eachOnePlugin :: String -> FilePath -> (Plugin, ExitCode) -> Plugin -> IO (Plugin, ExitCode)
 eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
 eachOnePlugin command dir (_, _) plugin = do
-  let path = dir <> rtpName' plugin
+  let path = dir <> rtpName plugin
   doesDirectoryExist path
     >>= \exists ->
       if not exists
@@ -377,7 +377,7 @@ eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [String] -> Setting -> IO ()
 pathPlugin plugins' setting = do
-  let ps = filter (\p -> rtpName' p `elem` plugins' || null plugins') (plugins setting)
+  let ps = filter (\p -> rtpName p `elem` plugins' || null plugins') (plugins setting)
   dir <- pluginDirectory
   forM_ ps (\plugin -> putStrLn (pack dir <> show plugin))
 
