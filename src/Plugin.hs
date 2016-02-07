@@ -9,24 +9,24 @@ import Data.Text (Text, unpack)
 import ShowText
 
 data Plugin =
-     Plugin { name          :: Text
-            , filetypes     :: [Text]
-            , commands      :: [Text]
-            , functions     :: [Text]
-            , mappings      :: [Text]
-            , mapmodes      :: [Text]
-            , insert        :: Bool
-            , enable        :: Text
-            , sync          :: Bool
-            , mapleader     :: Text
-            , script        :: [Text]
-            , after         :: [Text]
-            , before        :: [Text]
-            , dependon      :: [Text]
-            , dependedby    :: [Text]
-            , loadafter     :: [Text]
-            , loadbefore    :: [Text]
-            , submodule     :: Bool
+     Plugin { name       :: Text
+            , filetypes  :: [Text]
+            , commands   :: [Text]
+            , functions  :: [Text]
+            , mappings   :: [Text]
+            , mapmodes   :: [Text]
+            , insert     :: Bool
+            , enable     :: Text
+            , sync       :: Bool
+            , mapleader  :: Text
+            , script     :: [Text]
+            , after      :: [Text]
+            , before     :: [Text]
+            , dependon   :: [Text]
+            , dependedby :: [Text]
+            , loadafter  :: [Text]
+            , loadbefore :: [Text]
+            , submodule  :: Bool
      } deriving (Eq, Ord)
 
 instance ShowText Plugin where

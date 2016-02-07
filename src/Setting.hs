@@ -11,10 +11,10 @@ import Prelude hiding (lines)
 import Plugin
 
 data Setting =
-     Setting { plugins        :: [Plugin]
-             , filetype       :: HM.HashMap Text [Text]
-             , before         :: [Text]
-             , after          :: [Text]
+     Setting { plugins  :: [Plugin]
+             , filetype :: HM.HashMap Text [Text]
+             , before   :: [Text]
+             , after    :: [Text]
      } deriving Eq
 
 instance FromJSON Setting where
