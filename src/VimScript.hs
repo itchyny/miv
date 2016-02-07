@@ -336,7 +336,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "  if isdirectory(newrtp . 'after/')"
   , "    exec 'set rtp+=' . newrtp . 'after/'"
   , "  endif"
-  , "  for dir in filter(['ftdetect', 'after/ftdetect', 'plugin', 'after/plugin'], 'isdirectory(newrtp . v:val)')"
+  , "  for dir in filter(['plugin', 'after/plugin'], 'isdirectory(newrtp . v:val)')"
   , "    for file in split(glob(newrtp . dir . '/**/*.vim'), '\\n')"
   , "      silent! source `=file`"
   , "    endfor"

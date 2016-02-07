@@ -3,7 +3,7 @@ module Main where
 
 import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
 import qualified Control.Monad.Parallel as P
-import Data.List (foldl', nub, transpose, unfoldr)
+import Data.List ((\\), foldl', nub, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import Data.Text (Text, unwords, unlines, pack, unpack)
@@ -44,6 +44,9 @@ getDirectoryContents = fmap (map pack) . SD.getDirectoryContents . unpack
 
 removeDirectoryRecursive :: Text -> IO ()
 removeDirectoryRecursive = SD.removeDirectoryRecursive . unpack
+
+copyFile :: Text -> Text -> IO ()
+copyFile source target = SD.copyFile (unpack source) (unpack target)
 
 removeFile :: Text -> IO ()
 removeFile = SD.removeFile . unpack
@@ -114,6 +117,7 @@ arguments = map Argument
           [ ("install" , "Installs the uninstalled plugins.")
           , ("update"  , "Updates the plugins.")
           , ("generate", "Generate the miv files.")
+          , ("ftdetect", "Gather ftdetect scripts.")
           , ("helptags", "Generate the help tags file.")
           , ("each"    , "Execute command at each plugin directory.")
           , ("path"    , "Print the paths of each plugins.")
@@ -236,6 +240,7 @@ updatePlugin update maybePlugins setting = do
     (putStrLn ("Failed plugin" <> count (failed status) <> ": ")
      >> mapM_ (putStrLn . ("  "<>) . name) (reverse (failed status)))
   generatePluginCode setting
+  gatherFtdetectScript setting
   generateHelpTags setting
 
 mapM' :: P.MonadParallel m => (a -> m b) -> [a] -> m [b]
@@ -363,6 +368,19 @@ generatePluginCode setting = do
           (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
 
+gatherFtdetectScript :: Setting -> IO ()
+gatherFtdetectScript setting = do
+  dir <- pluginDirectory
+  cleanAndCreateDirectory (dir <> "miv/ftdetect/")
+  forM_ (plugins setting) $ \plugin -> do
+    let path = rtpName plugin
+    exists <- doesDirectoryExist (dir <> path <> "/ftdetect")
+    when exists $ do
+      files <- (\\ [".", ".."]) <$> getDirectoryContents (dir <> path <> "/ftdetect")
+      forM_ files $ \file ->
+        copyFile (dir <> path <> "/ftdetect/" <> file) (dir <> "miv/ftdetect/" <> file)
+  putStrLn "Success in gathering ftdetect scripts."
+
 eachPlugin :: Text -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
@@ -405,6 +423,7 @@ mainProgram ["command"] = commandHelp
 mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "<>))
 mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
+mainProgram ["ftdetect"] = getSettingWithError >>= gatherFtdetectScript
 mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
 mainProgram ["path"] = getSettingWithError >>= pathPlugin []
 mainProgram [arg] = suggestCommand arg

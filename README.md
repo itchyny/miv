@@ -255,6 +255,9 @@ Removes the unused directories.
 ### `miv generate`
 Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)
 
+### `miv ftdetect`
+Gather ftdetect scripts. (`miv install` and `miv update` automatically do this task)
+
 ### `miv helptags`
 Generates the helptags file. (`miv install` and `miv update` automatically do this task)
 
