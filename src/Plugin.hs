@@ -4,7 +4,7 @@ module Plugin where
 import Control.Applicative ((<|>))
 import Data.Aeson
 import qualified Data.Text as T
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 
 import ShowText
 
@@ -39,6 +39,9 @@ rtpName plg = subst (name plg)
                 | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
                 | "vim-" `T.isPrefixOf` s = T.drop 4 s
                 | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
+
+rtpName' :: Plugin -> String
+rtpName' = unpack . rtpName
 
 instance FromJSON Plugin where
   parseJSON = withObject "plugin" $ \o -> do
