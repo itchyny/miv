@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Control.Monad (filterM, foldM, forM_, liftM, unless, void, when)
+import Control.Monad (filterM, forM_, liftM, unless, void, when)
 import qualified Control.Monad.Parallel as P
 import Data.List ((\\), foldl', isPrefixOf, nub, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
@@ -354,23 +354,31 @@ gatherFtdetectScript setting = do
         copyFile (dir <> path <> "/ftdetect/" <> file) (dir <> "miv/ftdetect/" <> file)
   putStrLn "Success in gathering ftdetect scripts."
 
+data EachStatus = EachStatus { failed' :: [Plugin] }
+
+instance Monoid EachStatus where
+  mempty = EachStatus []
+  mappend (EachStatus f) (EachStatus f') = EachStatus (f <> f')
+
 eachPlugin :: String -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  result <- foldM (eachOnePlugin command dir) (undefined, ExitSuccess) (plugins setting)
-  when (snd result /= ExitSuccess)
-     $ putStrLn "Error:" >> putStrLn ("  " <> name (fst result))
+  status <- mconcat <$> mapM (eachOnePlugin command dir) (plugins setting)
+  unless (null (failed' status)) $ do
+    putStrLn "Error:"
+    mapM_ (putStrLn . ("  "<>) . name) (failed' status)
 
-eachOnePlugin :: String -> FilePath -> (Plugin, ExitCode) -> Plugin -> IO (Plugin, ExitCode)
-eachOnePlugin _ _ x@(_, ExitFailure 2) _ = return x
-eachOnePlugin command dir (_, _) plugin = do
+eachOnePlugin :: String -> FilePath -> Plugin -> IO EachStatus
+eachOnePlugin command dir plugin = do
   let path = dir <> rtpName plugin
-  doesDirectoryExist path
-    >>= \exists ->
-      if not exists
-         then return (plugin, ExitSuccess)
-         else (,) plugin <$> system (unwords ["cd", "'" <> path <> "'", "&&", command])
+  exists <- doesDirectoryExist path
+  if not exists
+     then return mempty
+     else do exitCode <- system (unwords ["cd", "'" <> path <> "'", "&&", command])
+             case exitCode of
+                  ExitSuccess -> return mempty
+                  _ -> return $ mempty { failed' = [plugin] }
 
 eachHelp :: IO ()
 eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
