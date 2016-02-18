@@ -193,8 +193,8 @@ updatePlugin :: Update -> Maybe [String] -> Setting -> IO ()
 updatePlugin update maybePlugins setting = do
   setNumCapabilities =<< getNumProcessors
   let unknownPlugins = filter (`notElem` map rtpName (plugins setting)) (fromMaybe [] maybePlugins)
-  unless (null unknownPlugins)
-     $ mapM_ (suggestPlugin (plugins setting)) unknownPlugins
+  unless (null unknownPlugins) $
+    mapM_ (suggestPlugin (plugins setting)) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
   let specified p = rtpName p `elem` fromMaybe [] maybePlugins || maybePlugins == Just []
@@ -204,15 +204,15 @@ updatePlugin update maybePlugins setting = do
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- mconcat <$> mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
-  unless (null (installed status))
-    (putStrLn ("Installed plugin" <> count (installed status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (installed status)))
-  unless (null (updated status))
-    (putStrLn ("Updated plugin" <> count (updated status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (updated status)))
-  unless (null (failed status))
-    (putStrLn ("Failed plugin" <> count (failed status) <> ": ")
-     >> mapM_ (putStrLn . ("  "<>) . name) (reverse (failed status)))
+  unless (null (installed status)) $ do
+    putStrLn $ "Installed plugin" <> count (installed status) <> ": "
+    mapM_ (putStrLn . ("  "<>) . name) (reverse (installed status))
+  unless (null (updated status)) $ do
+    putStrLn $ "Updated plugin" <> count (updated status) <> ": "
+    mapM_ (putStrLn . ("  "<>) . name) (reverse (updated status))
+  unless (null (failed status)) $ do
+    putStrLn $ "Failed plugin" <> count (failed status) <> ": "
+    mapM_ (putStrLn . ("  "<>) . name) (reverse (failed status))
   generatePluginCode setting
   gatherFtdetectScript setting
   generateHelpTags setting
@@ -231,12 +231,10 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir <> "miv/doc/"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir <> rtpName p <> "/doc/") (plugins setting))
-    $ \path ->
-        doesDirectoryExist path
-          >>= \exists -> when exists $ void
-              $ system $ unwords ["cd", "'" <> path <> "'",
-                                  "&& cp *", "'" <> docdir <> "'", "2>/dev/null"]
+  P.forM_ (map (\p -> dir <> rtpName p <> "/doc/") (plugins setting)) $ \path -> do
+    exists <- doesDirectoryExist path
+    when exists $
+      void $ system $ unwords ["cd", "'" <> path <> "'", "&& cp *", "'" <> docdir <> "'", "2>/dev/null"]
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
@@ -307,15 +305,16 @@ cleanDirectory setting = do
              putStr "Really? [y/N] "
              hFlush stdout
              c <- getChar
-             when (c == 'y' || c == 'Y')
-                  (mapM_ removeDirectoryRecursive deldir >> mapM_ removeFile delfile)
+             when (c == 'y' || c == 'Y') $ do
+               mapM_ removeDirectoryRecursive deldir
+               mapM_ removeFile delfile
      else putStrLn "Clean."
 
 saveScript :: (FilePath, Place, [Text]) -> IO ()
-saveScript (dir, place, code) =
+saveScript (dir, place, code) = do
   let relname = show place
-      isallascii = all (T.all (<='~')) code in
-  getZonedTime >>= \time ->
+      isallascii = all (T.all (<='~')) code
+  time <- getZonedTime
   writeFile (dir <> unpack relname) $ unlines $
             [ "\" Filename: " <> relname
             , "\" Last Change: " <> show time
