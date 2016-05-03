@@ -242,8 +242,7 @@ lastUpdatePlugin :: FilePath -> Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
   let path = dir <> rtpName plugin <> "/.git"
   exists <- doesDirectoryExist path
-  status <- gitStatus $ dir <> rtpName plugin
-  if exists && status == ExitSuccess then lastUpdate path else return 0
+  if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified plugin = do
