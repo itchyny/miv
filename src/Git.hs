@@ -26,7 +26,7 @@ pullSubmodule :: FilePath -> IO ExitCode
 pullSubmodule path = system $ unwords ["cd", singleQuote path, "&&", "git", "pull", "--rebase", "&&", "git", "submodule", "update", "--init", "--recursive"]
 
 lastUpdate :: FilePath -> IO Integer
-lastUpdate path = read <$> readProcess "sh" ["-c", unwords ["cd", singleQuote path, "&&", "git", "show", "-s", "--format=%ct"]] []
+lastUpdate path = read <$> readProcess "sh" ["-c", unwords ["cd", singleQuote path, "&&", "git", "show", "-s", "--format=%ct", "2>/dev/null", "||", "echo", "0"]] []
 
 gitStatus :: FilePath -> IO ExitCode
 gitStatus path = system $ unwords ["cd", singleQuote path, ">/dev/null 2>&1", "&&", "git", "status", ">/dev/null 2>&1"]
