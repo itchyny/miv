@@ -11,7 +11,7 @@ import qualified Data.Text as T
 import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import Data.Yaml (decodeFileEither, prettyPrintParseException, ParseException)
+import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Directory
@@ -37,7 +37,7 @@ expandHomeDirectory path = return path
 
 getSettingFile :: IO (Maybe FilePath)
 getSettingFile
-  = listToMaybe <$> filterM ((=<<) doesFileExist . expandHomeDirectory)
+  = fmap listToMaybe $ filterM doesFileExist =<< mapM expandHomeDirectory
        [ "~/.vimrc.yaml"
        , "~/.vim/.vimrc.yaml"
        , "~/vimrc.yaml"
@@ -50,19 +50,16 @@ getSettingFile
        , "~/vimfiles/_vimrc.yaml"
        ]
 
-getSetting :: IO (Either ParseException Setting)
-getSetting = fmap (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= decodeFileEither
-
 getSettingWithError :: IO Setting
-getSettingWithError =
-  getSettingFile >>= \file ->
-    case file of
-         Nothing -> error "No setting file: ~/.vimrc.yaml"
-         Just _ ->
-           getSetting >>= \set ->
-             case set of
-                  Left e -> error . prettyPrintParseException $ e
-                  Right setting -> return setting
+getSettingWithError = do
+  maybeFile <- getSettingFile
+  case maybeFile of
+       Just file -> do
+         maybeSetting <- decodeFileEither file
+         case maybeSetting of
+              Right setting -> return setting
+              Left err -> error . prettyPrintParseException $ err
+       Nothing -> error "No setting file: ~/.vimrc.yaml"
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
