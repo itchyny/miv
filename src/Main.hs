@@ -50,8 +50,8 @@ getSettingFile
        , "~/vimfiles/_vimrc.yaml"
        ]
 
-getSettingWithError :: IO Setting
-getSettingWithError = do
+getSetting :: IO Setting
+getSetting = do
   maybeFile <- getSettingFile
   case maybeFile of
        Just file -> do
@@ -389,24 +389,24 @@ mainProgram [] = printUsage
 mainProgram ['-':arg] = mainProgram [arg]
 mainProgram ["help"] = printUsage
 mainProgram ["version"] = putStrLn nameversion
-mainProgram ["install"] = getSettingWithError >>= updatePlugin Install Nothing
-mainProgram ["update"] = getSettingWithError >>= updatePlugin Update Nothing
-mainProgram ["update!"] = getSettingWithError >>= updatePlugin Update (Just [])
-mainProgram ["update", "!"] = getSettingWithError >>= updatePlugin Update (Just [])
+mainProgram ["install"] = getSetting >>= updatePlugin Install Nothing
+mainProgram ["update"] = getSetting >>= updatePlugin Update Nothing
+mainProgram ["update!"] = getSetting >>= updatePlugin Update (Just [])
+mainProgram ["update", "!"] = getSetting >>= updatePlugin Update (Just [])
 mainProgram ["each"] = eachHelp
-mainProgram ["list"] = getSettingWithError >>= listPlugin
+mainProgram ["list"] = getSetting >>= listPlugin
 mainProgram ["command"] = commandHelp
-mainProgram ["clean"] = getSettingWithError >>= cleanDirectory
+mainProgram ["clean"] = getSetting >>= cleanDirectory
 mainProgram ["edit"] = getSettingFile >>= maybe (return ()) (($) void . system . ("vim "<>))
-mainProgram ["generate"] = getSettingWithError >>= generatePluginCode
-mainProgram ["ftdetect"] = getSettingWithError >>= gatherFtdetectScript
-mainProgram ["helptags"] = getSettingWithError >>= generateHelpTags
-mainProgram ["path"] = getSettingWithError >>= pathPlugin []
+mainProgram ["generate"] = getSetting >>= generatePluginCode
+mainProgram ["ftdetect"] = getSetting >>= gatherFtdetectScript
+mainProgram ["helptags"] = getSetting >>= generateHelpTags
+mainProgram ["path"] = getSetting >>= pathPlugin []
 mainProgram [arg] = suggestCommand arg
-mainProgram ("install":args) = getSettingWithError >>= updatePlugin Install (Just args)
-mainProgram ("update":args) = getSettingWithError >>= updatePlugin Update (Just args)
-mainProgram ("each":args) = getSettingWithError >>= eachPlugin (unwords args)
-mainProgram ("path":args) = getSettingWithError >>= pathPlugin args
+mainProgram ("install":args) = getSetting >>= updatePlugin Install (Just args)
+mainProgram ("update":args) = getSetting >>= updatePlugin Update (Just args)
+mainProgram ("each":args) = getSetting >>= eachPlugin (unwords args)
+mainProgram ("path":args) = getSetting >>= pathPlugin args
 mainProgram (('-':arg):args) = mainProgram (arg:args)
 mainProgram _ = printUsage
 
