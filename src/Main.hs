@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Control.Monad (filterM, forM_, liftM, unless, void, when)
+import Control.Monad (filterM, forM_, unless, void, when)
 import qualified Control.Monad.Parallel as P
 import Data.List ((\\), foldl', isPrefixOf, nub, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
@@ -11,7 +11,7 @@ import qualified Data.Text as T
 import Data.Text.IO (putStrLn, putStr, writeFile)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import Data.Yaml (decodeFile)
+import Data.Yaml (decodeFileEither, prettyPrintParseException, ParseException)
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Directory
@@ -50,8 +50,8 @@ getSettingFile
        , "~/vimfiles/_vimrc.yaml"
        ]
 
-getSetting :: IO (Maybe Setting)
-getSetting = liftM (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= decodeFile
+getSetting :: IO (Either ParseException Setting)
+getSetting = fmap (fromMaybe "") getSettingFile >>= expandHomeDirectory >>= decodeFileEither
 
 getSettingWithError :: IO Setting
 getSettingWithError =
@@ -61,8 +61,8 @@ getSettingWithError =
          Just _ ->
            getSetting >>= \set ->
              case set of
-                  Nothing -> error "Parse error"
-                  Just setting -> return setting
+                  Left e -> error . prettyPrintParseException $ e
+                  Right setting -> return setting
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
