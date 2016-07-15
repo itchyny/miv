@@ -58,7 +58,7 @@ getSetting = do
          maybeSetting <- decodeFileEither file
          case maybeSetting of
               Right setting -> return setting
-              Left err -> error . prettyPrintParseException $ err
+              Left err -> error $ prettyPrintParseException err
        Nothing -> error "No setting file: ~/.vimrc.yaml"
 
 pluginDirectory :: IO FilePath
