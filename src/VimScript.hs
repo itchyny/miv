@@ -186,7 +186,6 @@ filetypeLoader setting
                        :  concat [wrapEnable b
                        [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
                     <> [ "  autocmd! MivFileTypeLoad" <> ft
-                       , "  augroup! MivFileTypeLoad" <> ft
                        , "  setl ft=" <> ft
                        , "  silent! doautocmd FileType " <> ft
                        , "endfunction"
