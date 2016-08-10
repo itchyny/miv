@@ -212,7 +212,6 @@ gatherInsertEnter setting
                : "function! s:insertEnter() abort"
              : [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plgs :: [P.Plugin] ]
             <> [ "  autocmd! MivInsertEnter"
-               , "  augroup! MivInsertEnter"
                , "  silent! doautocmd InsertEnter"
                , "endfunction"
                , ""
