@@ -76,7 +76,7 @@ printUsage :: IO ()
 printUsage = mapM_ putStrLn usage
 
 commandHelp :: IO ()
-commandHelp = mapM_ (putStrLn . (show :: Argument -> Text)) arguments
+commandHelp = mapM_ (putStrLn . show) arguments
 
 data Argument = Argument (Text, Text)
               deriving (Eq, Ord)
