@@ -20,10 +20,10 @@ cloneSubmodule :: String -> FilePath -> IO ExitCode
 cloneSubmodule repo path = system $ unwords ["git", "clone", gitUrl repo, singleQuote path, "&&", "cd", singleQuote path, "&&", "git", "submodule", "update", "--init", "--recursive"]
 
 pull :: FilePath -> IO ExitCode
-pull path = system $ unwords ["cd", singleQuote path, "&&", "git", "pull", "--rebase"]
+pull path = system $ unwords ["cd", singleQuote path, "&&", "git", "pull", "--rebase", "--prune"]
 
 pullSubmodule :: FilePath -> IO ExitCode
-pullSubmodule path = system $ unwords ["cd", singleQuote path, "&&", "git", "pull", "--rebase", "&&", "git", "submodule", "update", "--init", "--recursive"]
+pullSubmodule path = system $ unwords ["cd", singleQuote path, "&&", "git", "pull", "--rebase", "--prune", "&&", "git", "submodule", "update", "--init", "--recursive"]
 
 lastUpdate :: FilePath -> IO Integer
 lastUpdate path = read <$> readProcess "sh" ["-c", unwords ["cd", singleQuote path, "&&", "git", "show", "-s", "--format=%ct", "2>/dev/null", "||", "echo", "0"]] []
