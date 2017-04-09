@@ -36,6 +36,7 @@ executable miv
                       , text
                       , unordered-containers
                       , monad-parallel
+                      , cryptonite
 
 test-suite spec
   hs-source-dirs:       test
