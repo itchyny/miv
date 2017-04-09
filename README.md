@@ -243,14 +243,11 @@ Updates the plugins (outdated plugins are skipped).
 ### `miv update!`
 Updates all the plugins.
 
-### `miv install [plugins]`
-Installs the specified plugins.
-
 ### `miv update [plugins]`
 Updates the specified plugins.
 
 ### `miv clean`
-Removes the unused directories.
+Removes unused directories.
 
 ### `miv generate`
 Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)
