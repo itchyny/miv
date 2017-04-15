@@ -19,4 +19,6 @@ addons:
       - ghc-8.0.2
 
 script:
-  - stack --no-terminal --skip-ghc-check test
+  - stack build
+  - stack install
+  - stack test
