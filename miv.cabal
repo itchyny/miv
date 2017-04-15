@@ -24,7 +24,7 @@ executable miv
                       , VimScript
                       , Git
                       , Paths_miv
-  build-depends:        base >= 4.0 && < 5
+  build-depends:        base >= 4.9 && < 5
                       , ghc-prim
                       , process
                       , time
@@ -42,7 +42,7 @@ test-suite spec
   hs-source-dirs:       test
   main-is:              Spec.hs
   type:                 exitcode-stdio-1.0
-  build-depends:        base >= 4.0 && < 5
+  build-depends:        base >= 4.9 && < 5
                       , ghc-prim
                       , process
                       , time
