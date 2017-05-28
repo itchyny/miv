@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
@@ -18,13 +20,15 @@ import Data.Version (showVersion)
 import Data.Yaml (decodeFileEither, prettyPrintParseException)
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
+import System.Console.Concurrent ()
+import System.Console.Regions
 import System.Directory
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
 import System.Info (os)
-import System.IO (openFile, IOMode(..), hClose, hFlush, stdout)
-import System.IO.Error (isDoesNotExistError)
-import System.Process (system)
+import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
+import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
+import System.Process
 
 import Git
 import Paths_miv (version)
@@ -204,7 +208,9 @@ updatePlugin update maybePlugins setting = do
   let ps = filter filterplugin (plugins setting)
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
-  status <- mconcat <$> mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
+  status <- fmap mconcat <$> displayConsoleRegions $
+    mapConcurrently (fmap mconcat . mapM (\p -> updateOnePlugin time dir update (specified p) p)) $
+      transpose $ takeWhile (not . null) $ unfoldr (Just . splitAt 16) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status)) $ do
     putStrLn $ "Installed plugin" <> count (installed status) <> ": "
@@ -220,7 +226,7 @@ updatePlugin update maybePlugins setting = do
   generateHelpTags setting
 
 mapM' :: P.MonadParallel m => (a -> m b) -> [a] -> m [b]
-mapM' f = fmap mconcat . P.mapM (mapM f) . transpose . takeWhile (not . null) . unfoldr (Just . splitAt 8)
+mapM' f = fmap mconcat . P.mapM (mapM f) . transpose . takeWhile (not . null) . unfoldr (Just . splitAt 32)
 
 cleanAndCreateDirectory :: FilePath -> IO ()
 cleanAndCreateDirectory dir = do
@@ -247,17 +253,19 @@ lastUpdatePlugin dir plugin = do
   if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
-updateOnePlugin time dir update specified plugin = do
+updateOnePlugin time dir update specified plugin = withConsoleRegion Linear $ \region -> do
   let path = dir <> rtpName plugin
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
       pullCommand = if submodule plugin then pullSubmodule else pull
+      putStrLn' = setConsoleRegion region . ((name plugin <> ": ") <>)
+      finish' = finishConsoleRegion region . ((name plugin <> ": ") <>)
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
   if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
-     then do putStrLn $ "Installing: " <> name plugin
+     then do putStrLn' "Installing"
              when exists $ removeDirectoryRecursive path
-             cloneStatus <- cloneCommand repo path
+             cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
              created <- doesDirectoryExist path
              if cloneStatus /= ExitSuccess || not created
                 then return mempty { failed = [plugin] }
@@ -266,16 +274,36 @@ updateOnePlugin time dir update specified plugin = do
              then return mempty { nosync = [plugin] }
              else lastUpdate path >>= \lastUpdateTime ->
                   if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                     then do putStrLn $ "Outdated: " <> name plugin
+                     then do finish' "Outdated"
                              return mempty { outdated = [plugin] }
-                     else do putStrLn $ "Pulling: " <> name plugin
-                             pullStatus <- pullCommand path
+                     else do putStrLn' "Pulling"
+                             pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
                              newUpdateTime <- lastUpdate path
                              return $ if pullStatus /= ExitSuccess
                                          then mempty { failed = [plugin] }
                                          else if newUpdateTime <= lastUpdateTime
                                                  then mempty
                                                  else mempty { updated = [plugin] }
+
+execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
+execCommand pluginName region command = do
+  (_, Just hout, Just _, ph) <- createProcess (proc "sh" ["-c", command]) { std_out = CreatePipe, std_err = CreatePipe }
+  -- TODO: herr (for git clone)
+  go hout ph ""
+  where go hout ph xs = do
+          e <- tryIOError $ hGetLine hout
+          case e of
+               Left err ->
+                 if isEOFError err
+                    then do
+                      code <- waitForProcess ph
+                      finishConsoleRegion region (pluginName ++ ": " ++ xs)
+                      return code
+                    else return (ExitFailure 1)
+               Right line -> do
+                 setConsoleRegion region (pluginName ++ ": " ++ line)
+                 threadDelay 100000
+                 go hout ph line
 
 vimScriptRepo :: Text -> FilePath
 vimScriptRepo pluginname | T.any (=='/') pluginname = unpack pluginname

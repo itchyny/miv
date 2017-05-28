@@ -27,6 +27,8 @@ executable miv
   build-depends:        base >= 4.9 && < 5
                       , ghc-prim
                       , process
+                      , async
+                      , concurrent-output
                       , time
                       , directory
                       , hashable
