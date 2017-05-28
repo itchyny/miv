@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
-import Control.Concurrent (threadDelay)
+import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
@@ -287,23 +287,24 @@ updateOnePlugin time dir update specified plugin = withConsoleRegion Linear $ \r
 
 execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
 execCommand pluginName region command = do
-  (_, Just hout, Just _, ph) <- createProcess (proc "sh" ["-c", command]) { std_out = CreatePipe, std_err = CreatePipe }
-  -- TODO: herr (for git clone)
-  go hout ph ""
-  where go hout ph xs = do
-          e <- tryIOError $ hGetLine hout
+  (_, Just hout, Just herr, ph) <- createProcess (proc "sh" ["-c", command]) { std_out = CreatePipe, std_err = CreatePipe }
+  outmvar <- newEmptyMVar
+  errmvar <- newEmptyMVar
+  _ <- forkIO $ go herr errmvar ""
+  _ <- forkIO $ go hout outmvar ""
+  errline <- takeMVar errmvar
+  outline <- takeMVar outmvar
+  code <- waitForProcess ph
+  finishConsoleRegion region (pluginName ++ ": " ++ if null outline then errline else outline)
+  return code
+  where go h mvar lastLine = do
+          e <- tryIOError $ hGetLine h
           case e of
-               Left err ->
-                 if isEOFError err
-                    then do
-                      code <- waitForProcess ph
-                      finishConsoleRegion region (pluginName ++ ": " ++ xs)
-                      return code
-                    else return (ExitFailure 1)
+               Left err -> if isEOFError err then putMVar mvar lastLine else return ()
                Right line -> do
                  setConsoleRegion region (pluginName ++ ": " ++ line)
                  threadDelay 100000
-                 go hout ph line
+                 go h mvar line
 
 vimScriptRepo :: Text -> FilePath
 vimScriptRepo pluginname | T.any (=='/') pluginname = unpack pluginname
