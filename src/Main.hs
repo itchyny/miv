@@ -253,37 +253,41 @@ lastUpdatePlugin dir plugin = do
   if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
-updateOnePlugin time dir update specified plugin = withConsoleRegion Linear $ \region -> do
+updateOnePlugin time dir update specified plugin = do
   let path = dir <> rtpName plugin
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
       pullCommand = if submodule plugin then pullSubmodule else pull
-      putStrLn' = setConsoleRegion region . ((name plugin <> ": ") <>)
-      finish' = finishConsoleRegion region . ((name plugin <> ": ") <>)
+      putStrLn' = \region -> setConsoleRegion region . ((name plugin <> ": ") <>)
+      finish' = \region -> finishConsoleRegion region . ((name plugin <> ": ") <>)
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
   if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
-     then do putStrLn' "Installing"
-             when exists $ removeDirectoryRecursive path
-             cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
-             created <- doesDirectoryExist path
-             if cloneStatus /= ExitSuccess || not created
-                then return mempty { failed = [plugin] }
-                else return mempty { installed = [plugin] }
+     then withConsoleRegion Linear $ \region -> do
+       putStrLn' region "Installing"
+       when exists $ removeDirectoryRecursive path
+       cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
+       created <- doesDirectoryExist path
+       if cloneStatus /= ExitSuccess || not created
+          then return mempty { failed = [plugin] }
+          else return mempty { installed = [plugin] }
      else if update == Install || not (sync plugin)
              then return mempty { nosync = [plugin] }
-             else lastUpdate path >>= \lastUpdateTime ->
-                  if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
-                     then do finish' "Outdated"
-                             return mempty { outdated = [plugin] }
-                     else do putStrLn' "Pulling"
-                             pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
-                             newUpdateTime <- lastUpdate path
-                             return $ if pullStatus /= ExitSuccess
-                                         then mempty { failed = [plugin] }
-                                         else if newUpdateTime <= lastUpdateTime
-                                                 then mempty
-                                                 else mempty { updated = [plugin] }
+             else withConsoleRegion Linear $ \region -> do
+               lastUpdateTime <- lastUpdate path
+               if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
+                  then do
+                    finish' region "Outdated"
+                    return mempty { outdated = [plugin] }
+                  else do
+                    putStrLn' region "Pulling"
+                    pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
+                    newUpdateTime <- lastUpdate path
+                    return $ if pullStatus /= ExitSuccess
+                                then mempty { failed = [plugin] }
+                                else if newUpdateTime <= lastUpdateTime
+                                        then mempty
+                                        else mempty { updated = [plugin] }
 
 execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
 execCommand pluginName region command = do
