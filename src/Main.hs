@@ -242,7 +242,7 @@ generateHelpTags setting = do
   P.forM_ (map (\p -> dir <> rtpName p <> "/doc/") (plugins setting)) $ \path -> do
     exists <- doesDirectoryExist path
     when exists $
-      void $ system $ unwords ["cd", "'" <> path <> "'", "&& cp *", "'" <> docdir <> "'", "2>/dev/null"]
+      void $ system $ unwords ["sh", "-c", "\"cd", "'" <> path <> "'", "&& cp *", "'" <> docdir <> "'", "2>/dev/null\""]
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
