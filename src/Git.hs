@@ -29,7 +29,7 @@ lastUpdate :: FilePath -> IO Integer
 lastUpdate path = read <$> readProcess "sh" ["-c", unwords ["git", "-C", singleQuote path, "show", "-s", "--format=%ct", "2>/dev/null", "||", "echo", "0"]] []
 
 gitStatus :: FilePath -> IO ExitCode
-gitStatus path = system $ unwords ["git", "-C", singleQuote path, "status", ">/dev/null 2>&1"]
+gitStatus path = system $ unwords ["sh", "-c", "\"git", "-C", singleQuote path, "status", ">/dev/null 2>&1\""]
 
 gitUrl :: String -> String
 gitUrl = ("https://github.com/" <>)
