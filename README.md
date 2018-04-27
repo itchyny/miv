@@ -9,19 +9,6 @@
  $ stack install
 ```
 
-## Author
-itchyny (https://github.com/itchyny)
-
-## License
-This software is released under the MIT License, see LICENSE.
-
-## Migration guide for users of older miv
-I've changed some interfaces of miv recently. Configuration files for older miv cannot be recognized correctly by the new one. I'm sorry. You can fix up your configuration with the following steps.
-
-1. Change the field keys; `beforeScript` -> `before`, `afterScript` -> `after`, `filetypeScript` -> `filetype`.
-2. The plurals are deprecated; `commands` -> `command`, `filetypes` -> `filetype`, `functions` -> `function`, `mappings` -> `mapping`, `mapmodes` -> `mapmode`.
-3. The field `filetypeDetect` is deprecated. Write your own configuration in the `after` script.
-
 ## User guide
 1. Add the miv plugin path to runtimepath in your vimrc.
 2. Create ~/.vimrc.yaml.
@@ -279,3 +266,8 @@ Shows the help of `miv`.
 ### `miv version`
 Shows the version of `miv`.
 
+## Author
+itchyny (https://github.com/itchyny)
+
+## License
+This software is released under the MIT License, see LICENSE.
