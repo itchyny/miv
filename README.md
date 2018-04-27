@@ -266,6 +266,25 @@ Shows the help of `miv`.
 ### `miv version`
 Shows the version of `miv`.
 
+## Plugin configuration
+- `filetype`: load the plugin on setting the filetype
+- `command`: load the plugin on invoking the command
+- `function`: load the plugin on calling a function matching the value in regex
+- `mapping`: load the plugin on the mapping
+- `mapmode`: specify the mapmode for the `mapping` configuration (for example: `o`, `v`)
+- `insert`: load the plugin on entering the insert mode for the first time
+- `enable`: enable the plugin when the expression (in Vim script) is 1
+- `mapleader`: specify the mapleader (`<Leader>`) for the `script` configuration
+- `script`: script run on startup, specify some configurations or mappings to load the plugin
+- `after`: script run after the plugin is loaded
+- `before`: script run just before the plugin is loaded
+- `dependon`: plugins on which the plugin depends; they are loaded before the plugin is loaded
+- `dependedby`: plugins loaded just after the plugin is loaded
+- `loadafter`: not loaded on startup (this should load the plugin after the configured plugin, but it is not implemented so use `dependedby`)
+- `loadbefore`: not loaded on startup (this should load the plugin before the configured plugin, but it is not implemented so use `dependon`)
+- `submodule`: pull the submodules of the plugin repository
+- `sync`: skip pulling the repository if false
+
 ## Author
 itchyny (https://github.com/itchyny)
 
