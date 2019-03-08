@@ -293,7 +293,7 @@ commandLoader = VimScript (HM.singleton (Autoload "")
   , "  let range = a:line1 != a:line2 ? a:line1.','.a:line2 : ''"
   , "  try"
   , "    exec range.a:command.a:bang a:args"
-  , "  catch /^Vim\\%((\\a\\+)\\)\\=:E481/"
+  , "  catch /^Vim\\%((\\a\\+)\\)\\=:E481:/"
   , "    exec a:command.a:bang a:args"
   , "  endtry"
   , "endfunction"
