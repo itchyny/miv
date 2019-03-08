@@ -190,10 +190,12 @@ data UpdateStatus
        failed :: [Plugin]
    }
 
+instance Semigroup UpdateStatus where
+  UpdateStatus i u n o f <> UpdateStatus i' u' n' o' f'
+    = UpdateStatus (i <> i') (u <> u') (n <> n') (o <> o') (f <> f')
+
 instance Monoid UpdateStatus where
   mempty = UpdateStatus [] [] [] [] []
-  mappend (UpdateStatus i u n o f) (UpdateStatus i' u' n' o' f')
-    = UpdateStatus (i <> i') (u <> u') (n <> n') (o <> o') (f <> f')
 
 updatePlugin :: Update -> Maybe [String] -> Setting -> IO ()
 updatePlugin update maybePlugins setting = do
@@ -405,9 +407,11 @@ gatherFtdetectScript setting = do
 
 data EachStatus = EachStatus { failed' :: [Plugin] }
 
+instance Semigroup EachStatus where
+  EachStatus f <> EachStatus f' = EachStatus (f <> f')
+
 instance Monoid EachStatus where
   mempty = EachStatus []
-  mappend (EachStatus f) (EachStatus f') = EachStatus (f <> f')
 
 eachPlugin :: String -> Setting -> IO ()
 eachPlugin command setting = do

@@ -51,9 +51,8 @@ isFtplugin _ = False
 vimScriptToList :: VimScript -> [(Place, [Text])]
 vimScriptToList (VimScript x) = HM.toList x
 
-instance Monoid VimScript where
-  mempty = VimScript HM.empty
-  mappend (VimScript x) (VimScript y)
+instance Semigroup VimScript where
+  VimScript x <> VimScript y
     | HM.null x = VimScript y
     | HM.null y = VimScript x
     | otherwise = VimScript (HM.unionWith concat' x y)
@@ -61,6 +60,9 @@ instance Monoid VimScript where
       concat' a [] = a
       concat' [] b = b
       concat' a b = a <> [""] <> b
+
+instance Monoid VimScript where
+  mempty = VimScript HM.empty
 
 gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
