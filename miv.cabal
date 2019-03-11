@@ -34,11 +34,9 @@ executable miv
                       , hashable
                       , aeson
                       , yaml
-                      , bytestring
                       , text
                       , unordered-containers
                       , monad-parallel
-                      , cryptonite
 
 test-suite spec
   hs-source-dirs:       test
@@ -53,7 +51,6 @@ test-suite spec
                       , hspec
                       , aeson
                       , yaml
-                      , bytestring
                       , text
                       , unordered-containers
                       , monad-parallel
