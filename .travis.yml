@@ -13,3 +13,8 @@ script:
   - stack build
   - stack install
   - stack test
+
+matrix:
+  include:
+   - os: linux
+   - os: osx
