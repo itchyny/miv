@@ -18,3 +18,19 @@ matrix:
   include:
    - os: linux
    - os: osx
+
+before_deploy:
+  - mv "$(which miv)" .
+  - zip miv_"$(uname | awk '{ print tolower($0) }')".zip miv _miv
+
+deploy:
+  provider: releases
+  skip_cleanup: true
+  api_key:
+    secure: PnrrvYCAOI+BofIj5YxQfaC1NnDjJXj3Rp6t8CTzBydIOaikkjLpiEH3davpGB7yRT9z4CrYE4idmgz2vHu5A4xUP+xvpiPcXQGxR2JZkbpc/ZUHZUfu9I/HqQxYNr5sKTN1wsAa2bmCJlZckuFOwIm4KQYMS6T82dpluJMssKQ=
+  file: ./*.zip
+  file_glob: true
+  on:
+    repo: itchyny/miv
+    tags: true
+    all_branches: false
