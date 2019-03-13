@@ -2,7 +2,12 @@
 ### Vim plugin manager written in Haskell
 
 ## Installation
+### Homebrew
+```sh
+ $ brew install itchyny/miv/miv
+```
 
+### Build with stack
 ```
  $ git clone https://github.com/itchyny/miv
  $ cd miv
