@@ -4,7 +4,7 @@
 ## Installation
 ### Homebrew
 ```sh
- $ brew install itchyny/miv/miv
+ $ brew install itchyny/tap/miv
 ```
 
 ### Build with stack
