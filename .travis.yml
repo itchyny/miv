@@ -15,8 +15,8 @@ script:
 
 matrix:
   include:
-   - os: linux
-   - os: osx
+    - os: linux
+    - os: osx
 
 before_deploy:
   - export name="miv_$(uname | awk '{ print tolower($0) }')"
