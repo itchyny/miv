@@ -21,7 +21,7 @@ matrix:
 before_deploy:
   - export name="miv_$(uname | awk '{ print tolower($0) }')"
   - mkdir "$name"
-  - cp README.md LICENSE "$name"
+  - cp README.md LICENSE _miv "$name"
   - mv "$(which miv)" "$name"
   - zip -r "$name.zip" "$name"
 
