@@ -19,8 +19,11 @@ matrix:
    - os: osx
 
 before_deploy:
-  - mv "$(which miv)" .
-  - zip miv_"$(uname | awk '{ print tolower($0) }')".zip miv _miv
+  - export name="miv_$(uname | awk '{ print tolower($0) }')"
+  - mkdir "$name"
+  - cp README.md LICENSE "$name"
+  - mv "$(which miv)" "$name"
+  - zip -r "$name.zip" "$name"
 
 deploy:
   provider: releases
