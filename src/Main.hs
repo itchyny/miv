@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
+import Control.Applicative
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Exception
@@ -20,10 +21,9 @@ import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Console.Concurrent ()
 import System.Console.Regions
 import System.Directory
-import System.Environment (getArgs)
+import System.Environment (getArgs, lookupEnv)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
-import System.Info (os)
 import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
 import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
 import System.Process
@@ -70,10 +70,17 @@ getSetting = do
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
-  dir <- expandHomeDirectory "~/.vim/miv/"
-  windir <- expandHomeDirectory "~/vimfiles/miv/"
-  exists <- doesDirectoryExist dir
-  return (if exists then dir else (if os `elem` ["windows", "mingw"] then windir else dir))
+  defaultDir <- expandHomeDirectory "~/.vim/miv"
+  x <- lookupEnv "XDG_DATA_HOME" >>= maybe (return Nothing) (returnWhenExists . return . (</>"miv"))
+  y <- returnWhenExists (return defaultDir)
+  z <- returnWhenExists (expandHomeDirectory "~/vimfiles/miv")
+  w <- lookupEnv "XDG_DATA_HOME" >>= maybe (return Nothing) (return . Just . (</>"miv"))
+  return $ fromMaybe defaultDir $ x <|> y <|> z <|> w
+    where returnWhenExists :: IO FilePath -> IO (Maybe FilePath)
+          returnWhenExists getter = do
+            dir <- getter
+            exists <- doesDirectoryExist dir
+            return $ if exists then Just dir else Nothing
 
 createPluginDirectory :: IO ()
 createPluginDirectory =
