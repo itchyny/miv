@@ -7,7 +7,7 @@ import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
-import Data.List ((\\), foldl', isPrefixOf, nub, transpose, unfoldr)
+import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import Data.Text (Text, unlines, pack, unpack)
@@ -221,13 +221,13 @@ updatePlugin update maybePlugins setting = do
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status)) $ do
     putStrLn $ "Installed plugin" <> count (installed status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (reverse (installed status))
+    mapM_ (putStrLn . ("  "<>) . name) (sort (installed status))
   unless (null (updated status)) $ do
     putStrLn $ "Updated plugin" <> count (updated status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (reverse (updated status))
+    mapM_ (putStrLn . ("  "<>) . name) (sort (updated status))
   unless (null (failed status)) $ do
     putStrLn $ "Failed plugin" <> count (failed status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (reverse (failed status))
+    mapM_ (putStrLn . ("  "<>) . name) (sort (failed status))
   generatePluginCode setting
   gatherFtdetectScript setting
   generateHelpTags setting
