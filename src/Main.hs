@@ -22,6 +22,7 @@ import System.Console.Regions
 import System.Directory
 import System.Environment (getArgs)
 import System.Exit (ExitCode(..))
+import System.FilePath ((</>))
 import System.Info (os)
 import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
 import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
@@ -38,7 +39,7 @@ nameversion :: Text
 nameversion = "miv " <> pack (showVersion version)
 
 expandHomeDirectory :: FilePath -> IO FilePath
-expandHomeDirectory ('~':path) = (<>path) <$> getHomeDirectory
+expandHomeDirectory ('~':'/':path) = (</>path) <$> getHomeDirectory
 expandHomeDirectory path = return path
 
 getSettingFile :: IO (Maybe FilePath)
@@ -236,9 +237,9 @@ cleanAndCreateDirectory dir = do
 generateHelpTags :: Setting -> IO ()
 generateHelpTags setting = do
   dir <- pluginDirectory
-  let docdir = dir <> "miv/doc/"
+  let docdir = dir </> "miv" </> "doc"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir <> rtpName p <> "/doc/") (plugins setting)) $ \path -> do
+  P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) $ \path -> do
     exists <- doesDirectoryExist path
     when exists $
       void $ system $ unwords ["sh", "-c", "\"cd", "'" <> path <> "'", "&& cp *", "'" <> docdir <> "'", "2>/dev/null\""]
@@ -247,13 +248,13 @@ generateHelpTags setting = do
 
 lastUpdatePlugin :: FilePath -> Plugin -> IO Integer
 lastUpdatePlugin dir plugin = do
-  let path = dir <> rtpName plugin <> "/.git"
+  let path = dir </> rtpName plugin </> ".git"
   exists <- doesDirectoryExist path
   if exists then lastUpdate path else return 0
 
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified plugin = do
-  let path = dir <> rtpName plugin
+  let path = dir </> rtpName plugin
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
       pullCommand = if submodule plugin then pullSubmodule else pull
@@ -328,7 +329,7 @@ cleanDirectory setting = do
   createDirectoryIfMissing True dir
   cnt <- getDirectoryContents dir
   let paths = "." : ".." : "miv" : map (unpack . show) (plugins setting)
-      delpath' = [ dir <> d | d <- cnt, d `notElem` paths ]
+      delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
   let delpath = deldir <> delfile
@@ -346,7 +347,7 @@ cleanDirectory setting = do
 saveScript :: (FilePath, Place, [Text]) -> IO ()
 saveScript (dir, place, code) = do
   let relname = show place
-      path = dir <> unpack relname
+      path = dir </> unpack relname
       isAllAscii = all (T.all (<='~')) code
       body = "" : (if isAllAscii then [] else [ "scriptencoding utf-8", "" ])
          <> [ "let s:save_cpo = &cpo"
@@ -376,12 +377,12 @@ fileContents path = do
 
 generatePluginCode :: Setting -> IO ()
 generatePluginCode setting = do
-  dir <- fmap (<>"miv/") pluginDirectory
+  dir <- fmap (</>"miv") pluginDirectory
   createDirectoryIfMissing True dir
   -- TODO: remove unused directories and files
-  createDirectoryIfMissing True (dir <> "plugin/")
-  createDirectoryIfMissing True (dir <> "autoload/miv/")
-  createDirectoryIfMissing True (dir <> "ftplugin/")
+  createDirectoryIfMissing True (dir </> "plugin")
+  createDirectoryIfMissing True (dir </> "autoload" </> "miv")
+  createDirectoryIfMissing True (dir </> "ftplugin")
   P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
           (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
@@ -389,14 +390,14 @@ generatePluginCode setting = do
 gatherFtdetectScript :: Setting -> IO ()
 gatherFtdetectScript setting = do
   dir <- pluginDirectory
-  cleanAndCreateDirectory (dir <> "miv/ftdetect/")
+  cleanAndCreateDirectory (dir </> "miv" </> "ftdetect")
   forM_ (plugins setting) $ \plugin -> do
     let path = rtpName plugin
-    exists <- doesDirectoryExist (dir <> path <> "/ftdetect")
+    exists <- doesDirectoryExist (dir </> path </> "ftdetect")
     when exists $ do
-      files <- (\\ [".", ".."]) <$> getDirectoryContents (dir <> path <> "/ftdetect")
+      files <- (\\ [".", ".."]) <$> getDirectoryContents (dir </> path </> "ftdetect")
       forM_ files $ \file ->
-        copyFile (dir <> path <> "/ftdetect/" <> file) (dir <> "miv/ftdetect/" <> file)
+        copyFile (dir </> path </> "ftdetect" </> file) (dir </> "miv" </> "ftdetect" </> file)
   putStrLn "Success in gathering ftdetect scripts."
 
 data EachStatus = EachStatus { failed' :: [Plugin] }
@@ -418,7 +419,7 @@ eachPlugin command setting = do
 
 eachOnePlugin :: String -> FilePath -> Plugin -> IO EachStatus
 eachOnePlugin command dir plugin = do
-  let path = dir <> rtpName plugin
+  let path = dir </> rtpName plugin
   exists <- doesDirectoryExist path
   if not exists
      then return mempty
@@ -434,7 +435,7 @@ pathPlugin :: [String] -> Setting -> IO ()
 pathPlugin plugins' setting = do
   let ps = filter (\p -> rtpName p `elem` plugins' || null plugins') (plugins setting)
   dir <- pluginDirectory
-  forM_ ps (\plugin -> putStrLn (pack dir <> show plugin))
+  forM_ ps (\plugin -> putStrLn $ pack (dir </> unpack (show plugin)))
 
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage

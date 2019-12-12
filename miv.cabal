@@ -37,6 +37,7 @@ executable miv
                       , text
                       , unordered-containers
                       , monad-parallel
+                      , filepath
 
 test-suite spec
   hs-source-dirs:       test
