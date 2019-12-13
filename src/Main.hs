@@ -72,16 +72,13 @@ getSetting = do
 pluginDirectory :: IO FilePath
 pluginDirectory = do
   defaultDir <- expandHomeDirectory "~/.vim/miv"
-  x <- lookupEnv "XDG_DATA_HOME" >>= maybe (return Nothing) (returnWhenExists . return . (</>"miv"))
-  y <- returnWhenExists (return defaultDir)
-  z <- returnWhenExists (expandHomeDirectory "~/vimfiles/miv")
-  w <- lookupEnv "XDG_DATA_HOME" >>= maybe (return Nothing) (return . Just . (</>"miv"))
-  return $ fromMaybe defaultDir $ x <|> y <|> z <|> w
-    where returnWhenExists :: IO FilePath -> IO (Maybe FilePath)
-          returnWhenExists getter = do
-            dir <- getter
-            exists <- doesDirectoryExist dir
-            return $ if exists then Just dir else Nothing
+  maybeXdgDir <- lookupEnv "XDG_DATA_HOME" <&> fmap (</>"miv")
+  x <- maybe (return Nothing) ((<||> doesDirectoryExist) . return) maybeXdgDir
+  y <- return defaultDir <||> doesDirectoryExist
+  z <- expandHomeDirectory "~/vimfiles/miv" <||> doesDirectoryExist
+  return $ fromMaybe defaultDir $ x <|> y <|> z <|> maybeXdgDir
+    where (<||>) :: IO a -> (a -> IO Bool) -> IO (Maybe a)
+          (<||>) f g = f >>= \x -> g x >>= \b -> return $ if b then Just x else Nothing
 
 createPluginDirectory :: IO ()
 createPluginDirectory =
