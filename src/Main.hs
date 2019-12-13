@@ -28,6 +28,7 @@ import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
 import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
 import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
+import System.PosixCompat.Files (setFileTimes)
 import System.Process
 
 import Git
@@ -276,6 +277,7 @@ updateOnePlugin time dir update specified plugin = do
        when exists $ removeDirectoryRecursive path
        cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
        created <- doesDirectoryExist path
+       when created $ changeModifiedTime path =<< lastUpdate path
        if cloneStatus /= ExitSuccess || not created
           then return mempty { failed = [plugin] }
           else return mempty { installed = [plugin] }
@@ -291,11 +293,15 @@ updateOnePlugin time dir update specified plugin = do
                     putStrLn' region "Pulling"
                     pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
                     newUpdateTime <- lastUpdate path
+                    changeModifiedTime path newUpdateTime
                     return $ if pullStatus /= ExitSuccess
                                 then mempty { failed = [plugin] }
                                 else if newUpdateTime <= lastUpdateTime
                                         then mempty
                                         else mempty { updated = [plugin] }
+    where changeModifiedTime path mtime =
+            when (mtime > 0) $ let ctime = fromInteger mtime
+                                   in setFileTimes path ctime ctime
 
 execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
 execCommand pluginName region command = do

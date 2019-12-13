@@ -38,6 +38,7 @@ executable miv
                       , unordered-containers
                       , monad-parallel
                       , filepath
+                      , unix-compat
 
 test-suite spec
   hs-source-dirs:       test
