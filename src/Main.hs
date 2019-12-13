@@ -24,6 +24,7 @@ import System.Console.Concurrent ()
 import System.Console.Regions
 import System.Directory
 import System.Environment (getArgs, lookupEnv)
+import System.Environment.XDG.BaseDir (getUserConfigFile, getUserDataDir)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
 import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
@@ -45,42 +46,50 @@ expandHomeDirectory :: FilePath -> IO FilePath
 expandHomeDirectory ('~':'/':path) = getHomeDirectory <&> (</> path)
 expandHomeDirectory path = return path
 
+getSettingFileCandidates :: IO [FilePath]
+getSettingFileCandidates = do
+  xdgConfig <- getUserConfigFile "miv" "config.yaml"
+  mapM expandHomeDirectory
+    ([ xdgConfig
+     , "~/.vimrc.yaml"
+     , "~/.vim/.vimrc.yaml"
+     , "~/vimrc.yaml"
+     , "~/.vim/vimrc.yaml"
+     , "~/_vimrc.yaml"
+     , "~/.vim/_vimrc.yaml"
+     , "~/_vim/_vimrc.yaml"
+     , "~/vimfiles/.vimrc.yaml"
+     , "~/vimfiles/vimrc.yaml"
+     , "~/vimfiles/_vimrc.yaml"
+     ])
+
+getFirstExistingFile :: IO [FilePath] -> IO (Maybe FilePath)
+getFirstExistingFile fs = fmap listToMaybe $ filterM doesFileExist =<< fs
+
 getSettingFile :: IO (Maybe FilePath)
-getSettingFile = do
-  maybeXdgConfig <- lookupEnv "XDG_CONFIG_HOME" <&> fmap ((</>"miv") >>> (</>"config.yaml"))
-  fmap listToMaybe $ filterM doesFileExist =<< mapM expandHomeDirectory
-    (maybeToList maybeXdgConfig ++
-      [ "~/.vimrc.yaml"
-      , "~/.vim/.vimrc.yaml"
-      , "~/vimrc.yaml"
-      , "~/.vim/vimrc.yaml"
-      , "~/_vimrc.yaml"
-      , "~/.vim/_vimrc.yaml"
-      , "~/_vim/_vimrc.yaml"
-      , "~/vimfiles/.vimrc.yaml"
-      , "~/vimfiles/vimrc.yaml"
-      , "~/vimfiles/_vimrc.yaml"
-      ])
+getSettingFile = getFirstExistingFile $ getSettingFileCandidates
 
 getSetting :: IO Setting
 getSetting = do
-  maybeFile <- getSettingFile
+  candidates <- getSettingFileCandidates
+  maybeFile <- getFirstExistingFile $ return candidates
   case maybeFile of
        Just file -> do
          maybeSetting <- decodeFileEither file
          case maybeSetting of
               Right setting -> return setting
               Left err -> error $ prettyPrintParseException err
-       Nothing -> error "No setting file: ~/.vimrc.yaml"
+       Nothing -> error $ "No setting file! Tried following locations: " ++
+                          (unpack $ show candidates)
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
   defaultDir <- expandHomeDirectory "~/.vim/miv"
-  maybeXdgDir <- lookupEnv "XDG_DATA_HOME" <&> fmap (</>"miv")
-  x <- maybe (return Nothing) ((<||> doesDirectoryExist) . return) maybeXdgDir
+  xdgDir <- getUserDataDir "miv"
+  x <- return xdgDir <||> doesDirectoryExist
   y <- return defaultDir <||> doesDirectoryExist
   z <- expandHomeDirectory "~/vimfiles/miv" <||> doesDirectoryExist
-  return $ fromMaybe defaultDir $ x <|> y <|> z <|> maybeXdgDir
+  return $ fromMaybe defaultDir $ x <|> y <|> z
     where (<||>) :: IO a -> (a -> IO Bool) -> IO (Maybe a)
           (<||>) f g = f >>= \x -> g x >>= \b -> return $ if b then Just x else Nothing
 
