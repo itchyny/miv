@@ -16,7 +16,7 @@
 
 ## User guide
 1. Add the miv plugin path to runtimepath in your vimrc.
-2. Create ~/.vimrc.yaml.
+2. Create miv config file at `~/.vimrc.yaml`. (or `~/.vim/.vimrc.yaml`, `$XDG_CONFIG_HOME/miv/config.yaml`)
 3. Execute `miv install`.
 
 Example vimrc:
@@ -28,7 +28,7 @@ endif
 filetype plugin indent on
 ```
 
-Example `~/.vimrc.yaml`:
+Example miv config file:
 ```yaml
 plugin:
 

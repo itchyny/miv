@@ -2,6 +2,7 @@
 module Main where
 
 import Control.Applicative
+import Control.Category ((>>>))
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Exception
@@ -9,7 +10,7 @@ import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
-import Data.Maybe (listToMaybe, fromMaybe, isNothing)
+import Data.Maybe (listToMaybe, maybeToList, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
@@ -44,19 +45,21 @@ expandHomeDirectory ('~':'/':path) = getHomeDirectory <&> (</> path)
 expandHomeDirectory path = return path
 
 getSettingFile :: IO (Maybe FilePath)
-getSettingFile
-  = fmap listToMaybe $ filterM doesFileExist =<< mapM expandHomeDirectory
-       [ "~/.vimrc.yaml"
-       , "~/.vim/.vimrc.yaml"
-       , "~/vimrc.yaml"
-       , "~/.vim/vimrc.yaml"
-       , "~/_vimrc.yaml"
-       , "~/.vim/_vimrc.yaml"
-       , "~/_vim/_vimrc.yaml"
-       , "~/vimfiles/.vimrc.yaml"
-       , "~/vimfiles/vimrc.yaml"
-       , "~/vimfiles/_vimrc.yaml"
-       ]
+getSettingFile = do
+  maybeXdgConfig <- lookupEnv "XDG_CONFIG_HOME" <&> fmap ((</>"miv") >>> (</>"config.yaml"))
+  fmap listToMaybe $ filterM doesFileExist =<< mapM expandHomeDirectory
+    (maybeToList maybeXdgConfig ++
+      [ "~/.vimrc.yaml"
+      , "~/.vim/.vimrc.yaml"
+      , "~/vimrc.yaml"
+      , "~/.vim/vimrc.yaml"
+      , "~/_vimrc.yaml"
+      , "~/.vim/_vimrc.yaml"
+      , "~/_vim/_vimrc.yaml"
+      , "~/vimfiles/.vimrc.yaml"
+      , "~/vimfiles/vimrc.yaml"
+      , "~/vimfiles/_vimrc.yaml"
+      ])
 
 getSetting :: IO Setting
 getSetting = do
