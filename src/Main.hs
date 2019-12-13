@@ -7,6 +7,7 @@ import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
+import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
@@ -39,7 +40,7 @@ nameversion :: Text
 nameversion = "miv " <> pack (showVersion version)
 
 expandHomeDirectory :: FilePath -> IO FilePath
-expandHomeDirectory ('~':'/':path) = (</>path) <$> getHomeDirectory
+expandHomeDirectory ('~':'/':path) = getHomeDirectory <&> (</> path)
 expandHomeDirectory path = return path
 
 getSettingFile :: IO (Maybe FilePath)
@@ -402,7 +403,7 @@ gatherFtdetectScript setting = do
     let path = rtpName plugin
     exists <- doesDirectoryExist (dir </> path </> "ftdetect")
     when exists $ do
-      files <- (\\ [".", ".."]) <$> getDirectoryContents (dir </> path </> "ftdetect")
+      files <- getDirectoryContents (dir </> path </> "ftdetect") <&> (\\ [".", ".."])
       forM_ files $ \file ->
         copyFile (dir </> path </> "ftdetect" </> file) (dir </> "miv" </> "ftdetect" </> file)
   putStrLn "Success in gathering ftdetect scripts."
