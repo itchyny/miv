@@ -205,13 +205,13 @@ filetypeLoader setting
                        : "  setl ft="
                        :  concat [wrapEnable b
                        [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
-                    <> [ "  autocmd! MivFileTypeLoad" <> ft
+                    <> [ "  autocmd! miv-file-type-" <> ft
                        , "  setl ft=" <> ft
                        , "  silent! doautocmd FileType " <> ft
                        , "endfunction"
                        ]))
                   <> VimScript (HM.singleton Plugin
-                       [ "augroup MivFileTypeLoad" <> ft
+                       [ "augroup miv-file-type-" <> ft
                        , "  autocmd!"
                        , "  autocmd FileType " <> ft <> " call " <> funcname <> "()"
                        , "augroup END"
@@ -231,11 +231,11 @@ gatherInsertEnter setting
         f plgs = "\" InsertEnter"
                : "function! s:insertEnter() abort"
              : [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plgs :: [P.Plugin] ]
-            <> [ "  autocmd! MivInsertEnter"
+            <> [ "  autocmd! miv-insert-enter"
                , "  silent! doautocmd InsertEnter"
                , "endfunction"
                , ""
-               , "augroup MivInsertEnter"
+               , "augroup miv-insert-enter"
                , "  autocmd!"
                , "  autocmd InsertEnter * call s:insertEnter()"
                , "augroup END"
@@ -254,7 +254,7 @@ gatherFuncUndefined setting
                , "  endif" ] | (p, q) <- concatMap (\q -> map ((,) q) (P.functions q)) plgs]
             <> [ "endfunction"
                , ""
-               , "augroup MivFuncUndefined"
+               , "augroup miv-func-undefined"
                , "  autocmd!"
                , "  autocmd FuncUndefined * call s:funcUndefined()"
                , "augroup END"
