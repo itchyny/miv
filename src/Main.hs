@@ -78,8 +78,9 @@ getSetting = do
          case maybeSetting of
               Right setting -> return setting
               Left err -> error $ prettyPrintParseException err
-       Nothing -> error $ "No setting file! Tried following locations: " ++
-                          (unpack $ show candidates)
+       Nothing -> error $ unpack $ unlines $
+         "No setting file! Tried following locations:" :
+         map (\x -> "  - " <> pack x) candidates
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
