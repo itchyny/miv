@@ -5,7 +5,7 @@ import Data.Char (isAlpha, isAlphaNum, toLower)
 import Data.Function (on)
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
-import Data.List (foldl', groupBy, sortBy, nub)
+import Data.List (foldl', groupBy, sort, sortBy, nub)
 import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
 import Data.Text (Text, unwords, singleton)
@@ -128,7 +128,7 @@ gather' name f g plg
   = VimScript (HM.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote p
-                    <> ": [ " <> T.intercalate ", " (map singleQuote (nub q))  <> " ],"
+                    <> ": [ " <> T.intercalate ", " (map singleQuote $ sort $ nub q)  <> " ],"
         | (p, q) <- collectSndByFst $ [ (show p, q) | p <- plg, enabled p, q <- f p ]
                                    <> [ (q, show p) | p <- plg, enabled p, q <- g p ] ]
    <> [ "      \\ }" ])
