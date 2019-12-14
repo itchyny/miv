@@ -234,8 +234,7 @@ gatherInsertEnter setting
                , "augroup miv-insert-enter"
                , "  autocmd!"
                , "  autocmd InsertEnter * call s:insertEnter()"
-               , "augroup END"
-               , "" ]
+               , "augroup END" ]
 
 gatherFuncUndefined :: S.Setting -> VimScript
 gatherFuncUndefined setting
@@ -253,8 +252,7 @@ gatherFuncUndefined setting
                , "augroup miv-func-undefined"
                , "  autocmd!"
                , "  autocmd FuncUndefined * call s:funcUndefined()"
-               , "augroup END"
-               , "" ]
+               , "augroup END" ]
 
 wrapEnable :: P.Plugin -> [Text] -> [Text]
 wrapEnable plg str
