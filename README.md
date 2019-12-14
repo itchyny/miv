@@ -284,6 +284,7 @@ Shows the version of `miv`.
 - `loadbefore`: indicates lazy loading, the plugin is loaded just before any of the configured plugins
 - `loadafter`: indicates lazy loading, the plugin is loaded just after any of the configured plugins
 - `submodule`: pull the submodules of the plugin repository
+- `build`: build script after installing and updating
 - `sync`: skip pulling the repository if false
 
 ## Author

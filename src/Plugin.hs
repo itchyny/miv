@@ -26,6 +26,7 @@ data Plugin =
             , dependedby :: [Text]
             , loadafter  :: [Text]
             , loadbefore :: [Text]
+            , build      :: Text
             , submodule  :: Bool
      } deriving (Eq, Ord)
 
@@ -60,5 +61,6 @@ instance FromJSON Plugin where
     dependedby <- o .: "dependedby" <|> (fmap return <$> o .:? "dependedby") .!= []
     loadafter <- o .: "loadafter" <|> (fmap return <$> o .:? "loadafter") .!= []
     loadbefore <- o .: "loadbefore" <|> (fmap return <$> o .:? "loadbefore") .!= []
+    build <- o .:? "build" .!= ""
     submodule <- o .:? "submodule" .!= False
     return Plugin {..}

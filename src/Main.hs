@@ -36,7 +36,7 @@ import Paths_miv (version)
 import Plugin
 import Setting
 import ShowText
-import VimScript
+import VimScript hiding (singleQuote)
 
 nameversion :: Text
 nameversion = "miv " <> pack (showVersion version)
@@ -260,7 +260,7 @@ generateHelpTags setting = do
   P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) $ \path -> do
     exists <- doesDirectoryExist path
     when exists $
-      void $ system $ unwords ["sh", "-c", "\"cd", "'" <> path <> "'", "&& cp *", "'" <> docdir <> "'", "2>/dev/null\""]
+      void $ system $ unwords ["sh", "-c", "\"cd", singleQuote path, "&& cp *", singleQuote docdir, "2>/dev/null\""]
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
@@ -286,7 +286,9 @@ updateOnePlugin time dir update specified plugin = do
        when exists $ removeDirectoryRecursive path
        cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
        created <- doesDirectoryExist path
-       when created $ changeModifiedTime path =<< lastUpdate path
+       when created $ do
+         buildPlugin path region
+         changeModifiedTime path =<< lastUpdate path
        if cloneStatus /= ExitSuccess || not created
           then return mempty { failed = [plugin] }
           else return mempty { installed = [plugin] }
@@ -302,15 +304,25 @@ updateOnePlugin time dir update specified plugin = do
                     putStrLn' region "Pulling"
                     pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
                     newUpdateTime <- lastUpdate path
-                    changeModifiedTime path newUpdateTime
-                    return $ if pullStatus /= ExitSuccess
-                                then mempty { failed = [plugin] }
-                                else if newUpdateTime <= lastUpdateTime
-                                        then mempty
-                                        else mempty { updated = [plugin] }
+                    if pullStatus /= ExitSuccess
+                       then return $ mempty { failed = [plugin] }
+                       else if newUpdateTime <= lastUpdateTime
+                               then return mempty
+                               else do
+                                 buildPlugin path region
+                                 changeModifiedTime path newUpdateTime
+                                 return mempty { updated = [plugin] }
     where changeModifiedTime path mtime =
             when (mtime > 0) $ let ctime = fromInteger mtime
                                    in setFileTimes path ctime ctime
+          buildPlugin path region = do
+            let command = build plugin
+            when (not (T.null command)) $
+              void $ execCommand (unpack $ name plugin) region $
+                unwords ["cd", singleQuote path, "&&", "sh", "-c", singleQuote $ unpack command]
+
+singleQuote :: String -> String
+singleQuote str = "'" <> str <> "'"
 
 execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
 execCommand pluginName region command = do
@@ -448,7 +460,7 @@ eachOnePlugin command dir plugin = do
   exists <- doesDirectoryExist path
   if not exists
      then return mempty
-     else do exitCode <- system (unwords ["cd", "'" <> path <> "'", "&&", command])
+     else do exitCode <- system (unwords ["cd", singleQuote path, "&&", command])
              case exitCode of
                   ExitSuccess -> return mempty
                   _ -> return $ mempty { failed' = [plugin] }
