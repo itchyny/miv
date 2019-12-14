@@ -2,9 +2,10 @@
 module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, toLower)
+import Data.Function (on)
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
-import Data.List (foldl')
+import Data.List (foldl', groupBy, sortBy, nub)
 import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
 import Data.Text (Text, unwords, singleton)
@@ -68,8 +69,8 @@ gatherScript :: S.Setting -> VimScript
 gatherScript setting = addAutoloadNames
                      $ beforeScript setting
                     <> gatherBeforeAfterScript plugins
-                    <> gather "dependon" P.dependon plugins
-                    <> gather "dependedby" P.dependedby plugins
+                    <> gather' "dependon" P.dependon P.loadbefore plugins
+                    <> gather' "dependedby" P.dependedby P.loadafter plugins
                     <> gather "mappings" P.mappings plugins
                     <> gather "mapmodes" P.mapmodes plugins
                     <> gatherFuncUndefined setting
@@ -118,8 +119,25 @@ gather name f plg
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote (show p)
                     <> ": [ " <> T.intercalate ", " (map singleQuote (f p))  <> " ],"
-                                                               | p <- plg, not (null (f p)) ]
+        | p <- plg, enabled p, not (null (f p)) ]
    <> [ "      \\ }" ])
+  where enabled p = P.enable p /= "0"
+
+gather' :: Text -> (P.Plugin -> [Text]) -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
+gather' name f g plg
+  = VimScript (HM.singleton (Autoload "") $
+      [ "let s:" <> name <> " = {" ]
+   <> [ "      \\ " <> singleQuote p
+                    <> ": [ " <> T.intercalate ", " (map singleQuote (nub q))  <> " ],"
+        | (p, q) <- collectSndByFst $ [ (show p, q) | p <- plg, enabled p, q <- f p ]
+                                   <> [ (q, show p) | p <- plg, enabled p, q <- g p ] ]
+   <> [ "      \\ }" ])
+  where enabled p = P.enable p /= "0"
+
+collectSndByFst :: Ord a => [(a,b)] -> [(a,[b])]
+collectSndByFst xs = [ (fst (ys !! 0), map snd ys)
+                       | ys <- groupBy ((==) `on` fst) $ sortBy (compare `on'` fst) xs ]
+  where on' f g x y = g x `f` g y
 
 pluginConfig :: P.Plugin -> VimScript
 pluginConfig plg

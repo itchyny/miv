@@ -84,10 +84,6 @@ plugin:
             \ 'start_insert' : 1,
             \ 'prompt_direction': 'top',
             \ 'hide_icon': 0 })
-    dependedby:
-      - unite-build
-      - unite-colorscheme
-      - unite-highlight
 
   Shougo/unite-build:
     loadafter: unite
@@ -254,7 +250,7 @@ Generates the helptags file. (`miv install` and `miv update` automatically do th
 Lists all the plugins.
 
 ### `miv edit`
-Edits the `~/.vimrc.yaml` file.
+Edits the miv config file.
 
 ### `miv command`
 Lists the subcommands of `miv`.
@@ -283,10 +279,10 @@ Shows the version of `miv`.
 - `script`: script run on startup, specify some configurations or mappings to load the plugin
 - `after`: script run after the plugin is loaded
 - `before`: script run just before the plugin is loaded
-- `dependon`: plugins on which the plugin depends; they are loaded before the plugin is loaded
-- `dependedby`: plugins loaded just after the plugin is loaded
-- `loadafter`: not loaded on startup (this should load the plugin after the configured plugin, but it is not implemented so use `dependedby`)
-- `loadbefore`: not loaded on startup (this should load the plugin before the configured plugin, but it is not implemented so use `dependon`)
+- `dependon`: plugins on which the plugin depends; they are loaded just before the plugin is loaded
+- `dependedby`: (deprecated in favor of `loadafter`) plugins loaded just after the plugin is loaded
+- `loadbefore`: indicates lazy loading, the plugin is loaded just before any of the configured plugins
+- `loadafter`: indicates lazy loading, the plugin is loaded just after any of the configured plugins
 - `submodule`: pull the submodules of the plugin repository
 - `sync`: skip pulling the repository if false
 

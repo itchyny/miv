@@ -26,7 +26,7 @@ import System.Environment (getArgs)
 import System.Environment.XDG.BaseDir (getUserConfigFile, getUserDataDir)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
-import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, hGetLine)
+import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, stderr, hGetLine, hPutStrLn)
 import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
 import System.PosixCompat.Files (setFileTimes)
 import System.Process
@@ -405,6 +405,8 @@ generatePluginCode setting = do
   createDirectoryIfMissing True (dir </> "plugin")
   createDirectoryIfMissing True (dir </> "autoload" </> "miv")
   createDirectoryIfMissing True (dir </> "ftplugin")
+  when (any (not . null . dependedby) (plugins setting)) $
+    hPutStrLn stderr "`dependedby` is deprecated in favor of `loadafter`"
   P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
           (vimScriptToList (gatherScript setting))
   putStrLn "Success in generating Vim scripts of miv."
