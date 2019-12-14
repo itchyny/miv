@@ -32,6 +32,7 @@ data Plugin =
 instance ShowText Plugin where
   show plg = subst (name plg)
     where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
+                  | ".git" `T.isSuffixOf` s = subst $ T.take (T.length s - 4) s
                   | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
                   | "-vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
                   | "vim-" `T.isPrefixOf` s = T.drop 4 s

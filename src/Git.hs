@@ -9,6 +9,7 @@ module Git
   )
   where
 
+import Data.List (isPrefixOf)
 import Data.Monoid ((<>))
 import System.Exit (ExitCode(..))
 import System.Process (system, readProcess)
@@ -32,7 +33,8 @@ gitStatus :: FilePath -> IO ExitCode
 gitStatus path = system $ unwords ["sh", "-c", "\"git", "-C", singleQuote path, "status", ">/dev/null 2>&1\""]
 
 gitUrl :: String -> String
-gitUrl = ("https://github.com/" <>)
+gitUrl xs | "https://" `isPrefixOf` xs = xs
+gitUrl xs = "https://github.com/" <> xs
 
 singleQuote :: String -> String
 singleQuote str = "'" <> str <> "'"
