@@ -2,7 +2,6 @@
 module Main where
 
 import Control.Applicative
-import Control.Category ((>>>))
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Exception
@@ -10,7 +9,7 @@ import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
-import Data.Maybe (listToMaybe, maybeToList, fromMaybe, isNothing)
+import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Monoid ((<>))
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
@@ -23,7 +22,7 @@ import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Console.Concurrent ()
 import System.Console.Regions
 import System.Directory
-import System.Environment (getArgs, lookupEnv)
+import System.Environment (getArgs)
 import System.Environment.XDG.BaseDir (getUserConfigFile, getUserDataDir)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
