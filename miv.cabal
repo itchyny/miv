@@ -39,6 +39,7 @@ executable miv
                       , monad-parallel
                       , filepath
                       , unix-compat
+                      , xdg-basedir
 
 test-suite spec
   hs-source-dirs:       test
