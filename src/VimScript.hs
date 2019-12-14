@@ -45,10 +45,6 @@ autoloadSubdirName (Autoload "") = Nothing
 autoloadSubdirName (Autoload s) = Just s
 autoloadSubdirName _ = Nothing
 
-isFtplugin :: Place -> Bool
-isFtplugin (Ftplugin _) = True
-isFtplugin _ = False
-
 vimScriptToList :: VimScript -> [(Place, [Text])]
 vimScriptToList (VimScript x) = HM.toList x
 
