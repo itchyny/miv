@@ -248,9 +248,13 @@ mapM' f = fmap mconcat . P.mapM (mapM f) . transpose . takeWhile (not . null) . 
 
 cleanAndCreateDirectory :: FilePath -> IO ()
 cleanAndCreateDirectory dir = do
+  removeDirectoryIfExists dir
   createDirectoryIfMissing True dir
-  removeDirectoryRecursive dir
-  createDirectoryIfMissing True dir
+
+removeDirectoryIfExists :: FilePath -> IO ()
+removeDirectoryIfExists dir = do
+  exists <- doesDirectoryExist dir
+  when exists $ removeDirectoryRecursive dir
 
 generateHelpTags :: Setting -> IO ()
 generateHelpTags setting = do
