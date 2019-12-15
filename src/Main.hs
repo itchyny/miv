@@ -264,7 +264,10 @@ generateHelpTags setting = do
   P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) $ \path -> do
     exists <- doesDirectoryExist path
     when exists $
-      void $ system $ unwords ["sh", "-c", "\"cd", singleQuote path, "&& cp *", singleQuote docdir, "2>/dev/null\""]
+      void $ do (_, _, _, ph) <- createProcess (proc "sh" ["-c", "cp -R * " <> singleQuote docdir]) {
+                  cwd = Just path
+                }
+                waitForProcess ph
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
@@ -288,7 +291,7 @@ updateOnePlugin time dir update specified plugin = do
      then withConsoleRegion Linear $ \region -> do
        putStrLn' region "Installing"
        when exists $ removeDirectoryRecursive path
-       cloneStatus <- execCommand (unpack $ name plugin) region $ cloneCommand repo path
+       cloneStatus <- execCommand (unpack $ name plugin) region dir $ cloneCommand repo path
        created <- doesDirectoryExist path
        when created $ do
          buildPlugin path region
@@ -306,7 +309,7 @@ updateOnePlugin time dir update specified plugin = do
                     return mempty { outdated = [plugin] }
                   else do
                     putStrLn' region "Pulling"
-                    pullStatus <- execCommand (unpack $ name plugin) region $ pullCommand path
+                    pullStatus <- execCommand (unpack $ name plugin) region dir $ pullCommand path
                     newUpdateTime <- lastUpdate path
                     if pullStatus /= ExitSuccess
                        then return $ mempty { failed = [plugin] }
@@ -322,15 +325,18 @@ updateOnePlugin time dir update specified plugin = do
           buildPlugin path region = do
             let command = build plugin
             when (not (T.null command)) $
-              void $ execCommand (unpack $ name plugin) region $
-                unwords ["cd", singleQuote path, "&&", "sh", "-c", singleQuote $ unpack command]
+              void $ execCommand (unpack $ name plugin) region path (unpack command)
 
 singleQuote :: String -> String
 singleQuote str = "'" <> str <> "'"
 
-execCommand :: String -> ConsoleRegion -> String -> IO ExitCode
-execCommand pluginName region command = do
-  (_, Just hout, Just herr, ph) <- createProcess (proc "sh" ["-c", command]) { std_out = CreatePipe, std_err = CreatePipe }
+execCommand :: String -> ConsoleRegion -> String -> String -> IO ExitCode
+execCommand pluginName region dir command = do
+  (_, Just hout, Just herr, ph) <- createProcess (proc "sh" ["-c", command]) {
+    cwd     = Just dir,
+    std_out = CreatePipe,
+    std_err = CreatePipe
+  }
   outmvar <- newEmptyMVar
   errmvar <- newEmptyMVar
   _ <- forkIO $ go herr errmvar ""
@@ -464,7 +470,10 @@ eachOnePlugin command dir plugin = do
   exists <- doesDirectoryExist path
   if not exists
      then return mempty
-     else do exitCode <- system (unwords ["cd", singleQuote path, "&&", command])
+     else do (_, _, _, ph) <- createProcess (proc "sh" ["-c", command]) {
+               cwd = Just path
+             }
+             exitCode <- waitForProcess ph
              case exitCode of
                   ExitSuccess -> return mempty
                   _ -> return $ mempty { failed' = [plugin] }
