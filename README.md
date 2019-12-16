@@ -1,4 +1,4 @@
-# miv [![Build Status](https://travis-ci.org/itchyny/miv.png?branch=master)](https://travis-ci.org/itchyny/miv)
+# miv [![CI Status](https://github.com/itchyny/miv/workflows/CI/badge.svg)](https://github.com/itchyny/miv/actions)
 ### Vim plugin manager written in Haskell
 
 ## Installation
