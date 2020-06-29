@@ -7,7 +7,7 @@ license-file:           LICENSE
 category:               Compiler
 build-type:             Simple
 cabal-version:          >=1.10
-synopsis:               Manage Vim plugins with command
+synopsis:               Vim plugin manager written in Haskell
 description:            The miv command is a cli tool to manage Vim plugins.
 
 executable miv
