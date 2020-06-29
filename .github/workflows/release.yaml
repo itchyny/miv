@@ -89,7 +89,7 @@ jobs:
     - name: Set upload url
       id: upload-url
       run: |
-        echo "::set-output name=url::$(cat create-release/release_upload_url.txt)"
+        echo "::set-output name=url::$(cat release_upload_url.txt)"
     - name: Download artifact
       uses: actions/download-artifact@master
       with:
@@ -103,6 +103,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.upload-url.outputs.url }}
-        asset_path: ${{ matrix.target }}/${{ steps.asset.outputs.name }}.zip
+        asset_path: ${{ steps.asset.outputs.name }}.zip
         asset_name: ${{ steps.asset.outputs.name }}.zip
         asset_content_type: application/zip
