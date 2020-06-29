@@ -7,7 +7,6 @@ import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.List (foldl', groupBy, sort, sortBy, nub)
 import Data.Maybe (mapMaybe)
-import Data.Monoid ((<>))
 import Data.Text (Text, unwords, singleton)
 import qualified Data.Text as T
 import GHC.Generics (Generic)

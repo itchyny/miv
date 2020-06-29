@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Mapping where
 
-import Data.Monoid ((<>))
 import Data.Text (Text, unwords, null)
 import Prelude hiding (show, unwords, null)
 

@@ -10,7 +10,6 @@ module Git
   where
 
 import Data.List (isPrefixOf)
-import Data.Monoid ((<>))
 import System.Exit (ExitCode(..))
 import System.Process (system, readProcess)
 

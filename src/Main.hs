@@ -10,7 +10,6 @@ import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
-import Data.Monoid ((<>))
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
 import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
