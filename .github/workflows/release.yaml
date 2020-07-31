@@ -23,8 +23,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@master
     - name: Install stack
-      run: |
-        command -v stack || curl -sSL https://get.haskellstack.org/ | sh
+      run: command -v stack || curl -sSL https://get.haskellstack.org/ | sh
     - name: Build
       run: stack build
     - name: Install
@@ -65,8 +64,7 @@ jobs:
         draft: false
         prerelease: false
     - name: Save release upload url
-      run: |
-        echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
+      run: echo '${{ steps.create-release.outputs.upload_url }}' > release_upload_url.txt
     - name: Upload release upload url
       uses: actions/upload-artifact@master
       with:
@@ -88,8 +86,7 @@ jobs:
         name: create-release
     - name: Set upload url
       id: upload-url
-      run: |
-        echo "::set-output name=url::$(cat release_upload_url.txt)"
+      run: echo "::set-output name=url::$(cat release_upload_url.txt)"
     - name: Download artifact
       uses: actions/download-artifact@master
       with:
