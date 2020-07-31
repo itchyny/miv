@@ -8,7 +8,7 @@ import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
-import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr, (\\))
+import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
@@ -371,8 +371,8 @@ cleanDirectory setting = do
   createPluginDirectory
   dir <- pluginDirectory
   createDirectoryIfMissing True dir
-  cnt <- getDirectoryContents dir
-  let paths = "." : ".." : "miv" : map (unpack . show) (plugins setting)
+  cnt <- listDirectory dir
+  let paths = "miv" : map (unpack . show) (plugins setting)
       delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
   deldir <- filterM doesDirectoryExist delpath'
   delfile <- filterM doesFileExist delpath'
@@ -441,7 +441,7 @@ gatherFtdetectScript setting = do
     let path = rtpName plugin
     exists <- doesDirectoryExist (dir </> path </> "ftdetect")
     when exists $ do
-      files <- getDirectoryContents (dir </> path </> "ftdetect") <&> (\\ [".", ".."])
+      files <- listDirectory (dir </> path </> "ftdetect")
       forM_ files $ \file ->
         copyFile (dir </> path </> "ftdetect" </> file) (dir </> "miv" </> "ftdetect" </> file)
   putStrLn "Success in gathering ftdetect scripts."
