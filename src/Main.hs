@@ -4,11 +4,12 @@ module Main where
 import Control.Applicative
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
+import qualified Control.Concurrent.MSem as MSem
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
-import Data.List (foldl', isPrefixOf, nub, sort, transpose, unfoldr)
+import Data.List (foldl', isPrefixOf, nub, sort)
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
@@ -226,8 +227,7 @@ updatePlugin update maybePlugins setting = do
   let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- fmap mconcat <$> displayConsoleRegions $
-    mapConcurrently (fmap mconcat . mapM (\p -> updateOnePlugin time dir update (specified p) p)) $
-      transpose $ takeWhile (not . null) $ unfoldr (Just . splitAt 16) ps
+    mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
   unless (null (installed status)) $ do
     putStrLn $ "Installed plugin" <> count (installed status) <> ": "
@@ -242,8 +242,8 @@ updatePlugin update maybePlugins setting = do
   gatherFtdetectScript setting
   generateHelpTags setting
 
-mapM' :: P.MonadParallel m => (a -> m b) -> [a] -> m [b]
-mapM' f = fmap mconcat . P.mapM (mapM f) . transpose . takeWhile (not . null) . unfoldr (Just . splitAt 32)
+mapM' :: (a -> IO b) -> [a] -> IO [b]
+mapM' f xs = MSem.new (16 :: Int) >>= \sem -> mapConcurrently (MSem.with sem . f) xs
 
 cleanAndCreateDirectory :: FilePath -> IO ()
 cleanAndCreateDirectory dir = do

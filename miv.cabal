@@ -30,6 +30,7 @@ executable miv
                       , process
                       , async
                       , concurrent-output
+                      , SafeSemaphore
                       , time
                       , directory
                       , hashable
