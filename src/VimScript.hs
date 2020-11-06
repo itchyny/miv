@@ -201,12 +201,12 @@ filetypeLoader setting
                  in val
                   <> VimScript (HM.singleton (Autoload (singleton c))
                        (("function! " <> funcname <> "() abort")
-                       : "  setl ft="
+                       : "  setlocal filetype="
                        :  concat [wrapEnable b
                        [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
                     <> [ "  autocmd! miv-file-type-" <> ft
                        , "  augroup! miv-file-type-" <> ft
-                       , "  setl ft=" <> ft
+                       , "  setlocal filetype=" <> ft
                        , "  silent! doautocmd FileType " <> ft
                        , "endfunction"
                        ]))
