@@ -40,6 +40,7 @@ executable miv
                       , unordered-containers
                       , monad-parallel
                       , filepath
+                      , filepattern
                       , unix-compat
                       , xdg-basedir
 

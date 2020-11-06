@@ -237,7 +237,7 @@ Updates all the plugins.
 Updates the specified plugins.
 
 ### `miv clean`
-Removes unused directories.
+Removes unused directories and files.
 
 ### `miv generate`
 Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)

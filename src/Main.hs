@@ -9,7 +9,7 @@ import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
 import Data.Functor ((<&>))
-import Data.List (foldl', isPrefixOf, nub, sort)
+import Data.List (foldl', isPrefixOf, nub, sort, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Text (Text, unlines, pack, unpack)
 import qualified Data.Text as T
@@ -26,6 +26,7 @@ import System.Environment (getArgs)
 import System.Environment.XDG.BaseDir (getUserConfigFile, getUserDataDir)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
+import System.FilePattern.Directory (getDirectoryFiles)
 import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, stderr, hGetLine, hPutStrLn)
 import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
 import System.PosixCompat.Files (setFileTimes)
@@ -374,18 +375,20 @@ cleanDirectory setting = do
   cnt <- listDirectory dir
   let paths = "miv" : map (unpack . show) (plugins setting)
       delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
-  deldir <- filterM doesDirectoryExist delpath'
-  delfile <- filterM doesFileExist delpath'
-  let delpath = deldir <> delfile
-  if not (null delpath)
+  deldirs <- filterM doesDirectoryExist delpath'
+  files <- getDirectoryFiles (dir </> "miv") $ (unpack . show . ($ "*")) <$> [ Autoload, Ftplugin, Syntax ]
+  let delfiles = (delpath' \\ deldirs)
+        <> (((dir </> "miv") </>) <$> (files \\ [ unpack (show place) | (place, _) <- vimScriptToList (gatherScript setting) ]))
+  let delpaths = deldirs <> delfiles
+  if not (null delpaths)
      then do putStrLn "Remove:"
-             mapM_ (putStrLn . pack . ("  "<>)) delpath
+             mapM_ (putStrLn . pack . ("  "<>)) delpaths
              putStr "Really? [y/N] "
              hFlush stdout
              c <- getChar
              when (c == 'y' || c == 'Y') $ do
-               mapM_ removeDirectoryRecursive deldir
-               mapM_ removeFile delfile
+               mapM_ removeDirectoryRecursive deldirs
+               mapM_ removeFile $ delfiles
      else putStrLn "Clean."
 
 saveScript :: (FilePath, Place, [Text]) -> IO ()
@@ -423,7 +426,6 @@ generatePluginCode :: Setting -> IO ()
 generatePluginCode setting = do
   dir <- fmap (</>"miv") pluginDirectory
   createDirectoryIfMissing True dir
-  -- TODO: remove unused directories and files
   createDirectoryIfMissing True (dir </> "plugin")
   createDirectoryIfMissing True (dir </> "autoload" </> "miv")
   createDirectoryIfMissing True (dir </> "ftplugin")
