@@ -427,6 +427,7 @@ generatePluginCode setting = do
   createDirectoryIfMissing True (dir </> "plugin")
   createDirectoryIfMissing True (dir </> "autoload" </> "miv")
   createDirectoryIfMissing True (dir </> "ftplugin")
+  createDirectoryIfMissing True (dir </> "syntax")
   when (any (not . null . dependedby) (plugins setting)) $
     hPutStrLn stderr "`dependedby` is deprecated in favor of `loadafter`"
   P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))

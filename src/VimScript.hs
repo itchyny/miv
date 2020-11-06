@@ -26,18 +26,21 @@ data VimScript = VimScript (HM.HashMap Place [Text])
 data Place = Plugin
            | Autoload Text
            | Ftplugin Text
+           | Syntax   Text
            deriving (Eq, Generic)
 
 instance Hashable Place where
   hashWithSalt a Plugin       = a `hashWithSalt` (0 :: Int) `hashWithSalt` ("" :: Text)
   hashWithSalt a (Autoload s) = a `hashWithSalt` (1 :: Int) `hashWithSalt` s
   hashWithSalt a (Ftplugin s) = a `hashWithSalt` (2 :: Int) `hashWithSalt` s
+  hashWithSalt a (Syntax s)   = a `hashWithSalt` (3 :: Int) `hashWithSalt` s
 
 instance ShowText Place where
   show Plugin        = "plugin/miv.vim"
   show (Autoload "") = "autoload/miv.vim"
   show (Autoload s)  = "autoload/miv/" <> s <> ".vim"
   show (Ftplugin s)  = "ftplugin/" <> s <> ".vim"
+  show (Syntax s)    = "syntax/" <> s <> ".vim"
 
 autoloadSubdirName :: Place -> Maybe Text
 autoloadSubdirName (Autoload "") = Nothing
@@ -76,6 +79,7 @@ gatherScript setting = addAutoloadNames
                     <> filetypeLoader setting
                     <> gatherInsertEnter setting
                     <> filetypeScript (S.filetype setting)
+                    <> syntaxScript (S.syntax setting)
                     <> afterScript setting
   where plugins = S.plugins setting
 
@@ -269,6 +273,10 @@ singleQuote str = "'" <> str <> "'"
 filetypeScript :: HM.HashMap Text [Text] -> VimScript
 filetypeScript =
   HM.foldrWithKey (\ft scr val -> val <> VimScript (HM.singleton (Ftplugin ft) scr)) mempty
+
+syntaxScript :: HM.HashMap Text [Text] -> VimScript
+syntaxScript =
+  HM.foldrWithKey (\ft scr val -> val <> VimScript (HM.singleton (Syntax ft) scr)) mempty
 
 wrapFunction :: Text -> [Text] -> [Text]
 wrapFunction funcname script =

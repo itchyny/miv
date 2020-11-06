@@ -13,6 +13,7 @@ import Plugin
 data Setting =
      Setting { plugins  :: [Plugin]
              , filetype :: HM.HashMap Text [Text]
+             , syntax   :: HM.HashMap Text [Text]
              , before   :: [Text]
              , after    :: [Text]
      } deriving Eq
@@ -21,6 +22,7 @@ instance FromJSON Setting where
   parseJSON = withObject "setting" $ \o -> do
     plugins <- pluginHashMapToList <$> o .:? "plugin" .!= HM.empty
     filetype <- HM.map lines <$> o .:? "filetype" .!= HM.empty
+    syntax <- HM.map lines <$> o .:? "syntax" .!= HM.empty
     before <- lines <$> o .:? "before" .!= ""
     after <- lines <$> o .:? "after" .!= ""
     return Setting {..}
