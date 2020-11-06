@@ -205,6 +205,7 @@ filetypeLoader setting
                        :  concat [wrapEnable b
                        [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
                     <> [ "  autocmd! miv-file-type-" <> ft
+                       , "  augroup! miv-file-type-" <> ft
                        , "  setl ft=" <> ft
                        , "  silent! doautocmd FileType " <> ft
                        , "endfunction"
@@ -231,6 +232,7 @@ gatherInsertEnter setting
                : "function! s:insertEnter() abort"
              : [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plgs :: [P.Plugin] ]
             <> [ "  autocmd! miv-insert-enter"
+               , "  augroup! miv-insert-enter"
                , "  silent! doautocmd InsertEnter"
                , "endfunction"
                , ""
