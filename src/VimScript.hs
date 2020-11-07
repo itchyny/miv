@@ -179,7 +179,7 @@ gatherMapping plg
                         <> singleQuote (show mode) <> ")<CR>"
                   , M.mapMode    = mode } | c <- P.mappings plg]
           escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
-          modes = if null (P.mapmodes plg) then [NormalMode, VisualMode] else map read (P.mapmodes plg)
+          modes = if null (P.mapmodes plg) then [NormalMode] else map read (P.mapmodes plg)
           in concat [map (show . f) modes | f <- genMapping]
   | otherwise = []
 
@@ -333,7 +333,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "  for n in get(s:dependon, a:name, [])"
   , "    call miv#load(n)"
   , "  endfor"
-  , "  for mode in get(s:mapmodes, a:name, [ 'n', 'v' ])"
+  , "  for mode in get(s:mapmodes, a:name, ['n'])"
   , "    for mapping in get(s:mappings, a:name, [])"
   , "      silent! execute mode . 'unmap' mapping"
   , "    endfor"
