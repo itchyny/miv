@@ -78,7 +78,7 @@ gatherScript setting = addAutoloadNames
                     <> foldl' (<>) mempty (map pluginConfig plugins)
                     <> filetypeLoader setting
                     <> funcUndefinedLoader setting
-                    <> gatherInsertEnter setting
+                    <> insertEnterLoader setting
                     <> filetypeScript (S.filetype setting)
                     <> syntaxScript (S.syntax setting)
                     <> afterScript setting
@@ -225,23 +225,6 @@ filetypeLoadPlugins (b:plugins) fts
   | otherwise = filetypeLoadPlugins plugins fts
 filetypeLoadPlugins [] fts = fts
 
-gatherInsertEnter :: S.Setting -> VimScript
-gatherInsertEnter setting
-  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugins setting, P.insert p ]))
-  where f [] = []
-        f plgs = "\" InsertEnter"
-               : "function! s:insertEnter() abort"
-             : [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plgs :: [P.Plugin] ]
-            <> [ "  autocmd! miv-insert-enter"
-               , "  augroup! miv-insert-enter"
-               , "  silent! doautocmd InsertEnter"
-               , "endfunction"
-               , ""
-               , "augroup miv-insert-enter"
-               , "  autocmd!"
-               , "  autocmd InsertEnter * call s:insertEnter()"
-               , "augroup END" ]
-
 wrapEnable :: P.Plugin -> [Text] -> [Text]
 wrapEnable plg str
   | null str = []
@@ -328,6 +311,23 @@ funcUndefinedLoader _ = VimScript (HM.singleton Plugin
   , "  endfor"
   , "endfunction"
   ])
+
+insertEnterLoader :: S.Setting -> VimScript
+insertEnterLoader setting = if null plugins then mempty else VimScript (HM.singleton Plugin
+  [ "\" InsertEnter"
+  , "augroup miv-insert-enter"
+  , "  autocmd!"
+  , "  autocmd InsertEnter * call miv#insert_enter()"
+  , "augroup END" ])
+  <> VimScript (HM.singleton (Autoload "")
+  $ "function! miv#insert_enter() abort" :
+  [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins ]
+  <> [ "  autocmd! miv-insert-enter"
+  , "  augroup! miv-insert-enter"
+  , "  silent! doautocmd InsertEnter"
+  , "endfunction"
+  ])
+  where plugins = filter P.insert (S.plugins setting)
 
 pluginLoader :: VimScript
 pluginLoader = VimScript (HM.singleton (Autoload "")
