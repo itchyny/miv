@@ -275,6 +275,7 @@ Shows the version of `miv`.
 - `function`: load the plugin on calling a function matching the value in regex
 - `mapping`: load the plugin on the mapping
 - `mapmode`: specify the mapmode for the `mapping` configuration (for example: `o`, `v`)
+- `cmdline`: specify the cmdline character to load the plugin (for example: `:`, `/`)
 - `insert`: load the plugin on entering the insert mode for the first time
 - `enable`: enable the plugin when the expression (in Vim script) is 1
 - `mapleader`: specify the mapleader (`<Leader>`) for the `script` configuration

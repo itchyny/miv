@@ -6,6 +6,7 @@ import Data.Aeson
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
 
+import Cmdline
 import ShowText
 
 data Plugin =
@@ -15,6 +16,7 @@ data Plugin =
             , functions  :: [Text]
             , mappings   :: [Text]
             , mapmodes   :: [Text]
+            , cmdlines   :: [Cmdline]
             , insert     :: Bool
             , enable     :: Text
             , sync       :: Bool
@@ -50,6 +52,7 @@ instance FromJSON Plugin where
     functions <- o .: "function" <|> (fmap return <$> o .:? "function") .!= []
     mappings <- o .: "mapping" <|> (fmap return <$> o .:? "mapping") .!= []
     mapmodes <- o .: "mapmode" <|> (fmap return <$> o .:? "mapmode") .!= []
+    cmdlines <- o .: "cmdline" <|> (fmap return <$> o .:? "cmdline") .!= []
     mapleader <- o .:? "mapleader" .!= ""
     insert <- o .:? "insert" .!= False
     enable <- o .:? "enable" .!= ""

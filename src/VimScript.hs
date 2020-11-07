@@ -1,17 +1,18 @@
 {-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module VimScript where
 
-import Data.Char (isAlpha, isAlphaNum, toLower)
+import Data.Char (isAlpha, isAlphaNum, ord, toLower)
 import Data.Function (on)
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.List (foldl', groupBy, sort, sortBy, nub)
 import Data.Maybe (mapMaybe)
-import Data.Text (Text, unwords, singleton)
+import Data.Text (Text, singleton, unpack, unwords)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
 import Prelude hiding (show, unwords, read)
 
+import Cmdline
 import qualified Command as C
 import qualified Mapping as M
 import Mode
@@ -78,6 +79,7 @@ gatherScript setting = addAutoloadNames
                     <> foldl' (<>) mempty (map pluginConfig plugins)
                     <> filetypeLoader setting
                     <> funcUndefinedLoader setting
+                    <> cmdlineEnterLoader setting
                     <> insertEnterLoader setting
                     <> filetypeScript (S.filetype setting)
                     <> syntaxScript (S.syntax setting)
@@ -151,7 +153,7 @@ pluginConfig plg
 loadScript :: P.Plugin -> [Text]
 loadScript plg
   | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
-             , P.loadafter plg, P.loadbefore plg ] && not (P.insert plg)
+             , P.loadafter plg, P.loadbefore plg ] && null (P.cmdlines plg) && not (P.insert plg)
   = ["call miv#load(" <> singleQuote (show plg) <> ")"]
   | otherwise = []
 
@@ -311,6 +313,29 @@ funcUndefinedLoader _ = VimScript (HM.singleton Plugin
   , "  endfor"
   , "endfunction"
   ])
+
+cmdlineEnterLoader :: S.Setting -> VimScript
+cmdlineEnterLoader setting
+  = HM.foldrWithKey f mempty $
+      foldr (uncurry (HM.insertWith (<>))) HM.empty
+        [ (cmdline, [p]) | p <- S.plugins setting, cmdline <- P.cmdlines p ]
+  where
+    f :: Cmdline -> [P.Plugin] -> VimScript -> VimScript
+    f cmdline plugins val = val <> VimScript (HM.singleton Plugin
+      [ "\" CmdlineEnter " <> (show cmdline)
+      , "augroup " <> group
+      , "  autocmd!"
+      , "  autocmd CmdlineEnter " <> (cmdlinePattern cmdline) <> " call miv#cmdline_enter_" <> c <> "()"
+      , "augroup END" ])
+      <> VimScript (HM.singleton (Autoload "") $
+       ("function! miv#cmdline_enter_" <> c <> "() abort") :
+      [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins ]
+      <> [ "  autocmd! " <> group
+      , "  augroup! " <> group
+      , "endfunction"
+      ])
+      where c = T.concat $ map (show . ord) (unpack (show cmdline))
+            group = "miv-cmdline-enter-" <> c
 
 insertEnterLoader :: S.Setting -> VimScript
 insertEnterLoader setting = if null plugins then mempty else VimScript (HM.singleton Plugin
