@@ -71,12 +71,13 @@ gatherScript setting = addAutoloadNames
                     <> gather' "dependedby" P.dependedby P.loadafter plugins
                     <> gather "mappings" P.mappings plugins
                     <> gather "mapmodes" P.mapmodes plugins
-                    <> gatherFuncUndefined setting
+                    <> gather "functions" P.functions plugins
                     <> pluginLoader
                     <> mappingLoader
                     <> commandLoader
                     <> foldl' (<>) mempty (map pluginConfig plugins)
                     <> filetypeLoader setting
+                    <> funcUndefinedLoader setting
                     <> gatherInsertEnter setting
                     <> filetypeScript (S.filetype setting)
                     <> syntaxScript (S.syntax setting)
@@ -241,24 +242,6 @@ gatherInsertEnter setting
                , "  autocmd InsertEnter * call s:insertEnter()"
                , "augroup END" ]
 
-gatherFuncUndefined :: S.Setting -> VimScript
-gatherFuncUndefined setting
-  = VimScript (HM.singleton Plugin (f [ p | p <- S.plugins setting, not (null (P.functions p))]))
-  where f [] = []
-        f plgs = "\" FuncUndefined"
-               : "function! s:funcUndefined() abort"
-               : "  let f = expand('<amatch>')"
-               : concat [
-               [ "  if f =~# " <> singleQuote q
-               , "    call miv#load(" <> singleQuote (show p) <> ")"
-               , "  endif" ] | (p, q) <- concatMap (\q -> map ((,) q) (P.functions q)) plgs]
-            <> [ "endfunction"
-               , ""
-               , "augroup miv-func-undefined"
-               , "  autocmd!"
-               , "  autocmd FuncUndefined * call s:funcUndefined()"
-               , "augroup END" ]
-
 wrapEnable :: P.Plugin -> [Text] -> [Text]
 wrapEnable plg str
   | null str = []
@@ -320,6 +303,32 @@ commandLoader = VimScript (HM.singleton (Autoload "")
   , "endfunction"
   ])
 
+funcUndefinedLoader :: S.Setting -> VimScript
+funcUndefinedLoader setting | all (null . P.functions) (S.plugins setting) = mempty
+funcUndefinedLoader _ = VimScript (HM.singleton Plugin
+  [ "\" FuncUndefined"
+  , "augroup miv-func-undefined"
+  , "  autocmd!"
+  , "  autocmd FuncUndefined * call miv#func_undefined(expand('<amatch>'))"
+  , "augroup END" ])
+  <> VimScript (HM.singleton (Autoload "")
+  [ "function! miv#func_undefined(pattern) abort"
+  , "  if empty(s:functions)"
+  , "    autocmd! miv-func-undefined"
+  , "    augroup! miv-func-undefined"
+  , "    return"
+  , "  endif"
+  , "  for [name, fs] in items(s:functions)"
+  , "    for f in fs"
+  , "      if a:pattern =~# f"
+  , "        call miv#load(name)"
+  , "        return"
+  , "      endif"
+  , "    endfor"
+  , "  endfor"
+  , "endfunction"
+  ])
+
 pluginLoader :: VimScript
 pluginLoader = VimScript (HM.singleton (Autoload "")
   [ "let s:loaded = {}"
@@ -330,6 +339,9 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "    return"
   , "  endif"
   , "  let s:loaded[a:name] = 1"
+  , "  if has_key(s:functions, a:name)"
+  , "    call remove(s:functions, a:name)"
+  , "  endif"
   , "  for n in get(s:dependon, a:name, [])"
   , "    call miv#load(n)"
   , "  endfor"
