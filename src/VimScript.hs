@@ -289,8 +289,8 @@ commandLoader = VimScript (HM.singleton (Autoload "")
   ])
 
 funcUndefinedLoader :: S.Setting -> VimScript
-funcUndefinedLoader setting | all (null . P.functions) (S.plugins setting) = mempty
-funcUndefinedLoader _ = VimScript (HM.singleton Plugin
+funcUndefinedLoader setting = if null functions then mempty else
+  VimScript (HM.singleton Plugin
   [ "\" FuncUndefined"
   , "augroup miv-func-undefined"
   , "  autocmd!"
@@ -298,6 +298,9 @@ funcUndefinedLoader _ = VimScript (HM.singleton Plugin
   , "augroup END" ])
   <> VimScript (HM.singleton (Autoload "")
   [ "function! miv#func_undefined(pattern) abort"
+  , "  if a:pattern !~# " <> singleQuote (T.intercalate "\\|" functions)
+  , "    return"
+  , "  endif"
   , "  if empty(s:functions)"
   , "    autocmd! miv-func-undefined"
   , "    augroup! miv-func-undefined"
@@ -313,6 +316,7 @@ funcUndefinedLoader _ = VimScript (HM.singleton Plugin
   , "  endfor"
   , "endfunction"
   ])
+  where functions = [ f | p <- S.plugins setting, f <- P.functions p ]
 
 cmdlineEnterLoader :: S.Setting -> VimScript
 cmdlineEnterLoader setting
@@ -338,7 +342,8 @@ cmdlineEnterLoader setting
             group = "miv-cmdline-enter-" <> c
 
 insertEnterLoader :: S.Setting -> VimScript
-insertEnterLoader setting = if null plugins then mempty else VimScript (HM.singleton Plugin
+insertEnterLoader setting = if null plugins then mempty else
+  VimScript (HM.singleton Plugin
   [ "\" InsertEnter"
   , "augroup miv-insert-enter"
   , "  autocmd!"
