@@ -74,8 +74,8 @@ gatherScript setting = beforeScript setting
                     <> funcUndefinedLoader setting
                     <> cmdlineEnterLoader setting
                     <> insertEnterLoader setting
-                    <> filetypeScript (S.filetype setting)
-                    <> syntaxScript (S.syntax setting)
+                    <> filetypeScript setting
+                    <> syntaxScript setting
                     <> afterScript setting
   where plugins = S.plugins setting
 
@@ -180,37 +180,26 @@ afterScript setting = VimScript (HM.singleton Plugin (S.after setting))
 
 filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting
-  = HM.foldrWithKey f mempty (filetypeLoadPlugins (S.plugins setting) HM.empty)
+  = mconcat $ map (uncurry f) $
+      collectSndByFst [(ft, p) | p <- S.plugins setting, ft <- P.filetypes p]
   where
-    f ft plugins val =
-      case getHeadChar ft of
-           Nothing -> val
-           Just c ->
-             let funcname = "miv#" <> singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
-                 in val
-                  <> VimScript (HM.singleton (Autoload (singleton c))
-                       (("function! " <> funcname <> "() abort")
-                       : "  setlocal filetype="
-                       : loadPlugins plugins
-                    <> [ "  autocmd! miv-file-type-" <> ft
-                       , "  augroup! miv-file-type-" <> ft
-                       , "  setlocal filetype=" <> ft
-                       , "  silent! doautocmd FileType " <> ft
-                       , "endfunction"
-                       ]))
-                  <> VimScript (HM.singleton Plugin
-                       [ "augroup miv-file-type-" <> ft
-                       , "  autocmd!"
-                       , "  autocmd FileType " <> ft <> " call " <> funcname <> "()"
-                       , "augroup END"
-                       ])
-
-filetypeLoadPlugins :: [P.Plugin] -> HM.HashMap Text [P.Plugin] -> HM.HashMap Text [P.Plugin]
-filetypeLoadPlugins (b:plugins) fts
-  | not (null (P.filetypes b))
-  = filetypeLoadPlugins plugins (foldr (flip (HM.insertWith (<>)) [b]) fts (P.filetypes b))
-  | otherwise = filetypeLoadPlugins plugins fts
-filetypeLoadPlugins [] fts = fts
+    f :: Text -> [P.Plugin] -> VimScript
+    f ft plugins = flip foldMap (getHeadChar ft) $
+      \c -> let funcname = "miv#" <> singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
+                in VimScript (HM.singleton Plugin
+                     [ "augroup miv-file-type-" <> ft
+                     , "  autocmd!"
+                     , "  autocmd FileType " <> ft <> " call " <> funcname <> "()"
+                     , "augroup END" ]) <>
+                   VimScript (HM.singleton (Autoload (singleton c)) $
+                     ("function! " <> funcname <> "() abort")
+                     : "  setlocal filetype="
+                     : loadPlugins plugins
+                  <> [ "  autocmd! miv-file-type-" <> ft
+                     , "  augroup! miv-file-type-" <> ft
+                     , "  setlocal filetype=" <> ft
+                     , "  silent! doautocmd FileType " <> ft
+                     , "endfunction" ])
 
 wrapEnable :: Text -> [Text] -> [Text]
 wrapEnable enable str
@@ -231,13 +220,11 @@ loadPlugins plugins = concat
 singleQuote :: Text -> Text
 singleQuote str = "'" <> str <> "'"
 
-filetypeScript :: HM.HashMap Text [Text] -> VimScript
-filetypeScript =
-  HM.foldrWithKey (\ft scr val -> val <> VimScript (HM.singleton (Ftplugin ft) scr)) mempty
+filetypeScript :: S.Setting -> VimScript
+filetypeScript = foldMap (\(ft, src) -> VimScript (HM.singleton (Ftplugin ft) src)) . HM.toList . S.filetype
 
-syntaxScript :: HM.HashMap Text [Text] -> VimScript
-syntaxScript =
-  HM.foldrWithKey (\ft scr val -> val <> VimScript (HM.singleton (Syntax ft) scr)) mempty
+syntaxScript :: S.Setting -> VimScript
+syntaxScript = foldMap (\(ft, src) -> VimScript (HM.singleton (Syntax ft) src)) . HM.toList . S.syntax
 
 wrapFunction :: Text -> [Text] -> [Text]
 wrapFunction funcname script =
@@ -262,8 +249,7 @@ mappingLoader = VimScript (HM.singleton (Autoload "")
   , "  endif"
   , "  call feedkeys((v:count ? v:count : '') . substitute(a:mapping, '<Plug>', \"\\<Plug>\", 'g'), 'm')"
   , "  return ''"
-  , "endfunction"
-  ])
+  , "endfunction" ])
 
 commandLoader :: VimScript
 commandLoader = VimScript (HM.singleton (Autoload "")
@@ -276,8 +262,7 @@ commandLoader = VimScript (HM.singleton (Autoload "")
   , "  catch /^Vim\\%((\\a\\+)\\)\\=:E481:/"
   , "    exec a:command.a:bang a:args"
   , "  endtry"
-  , "endfunction"
-  ])
+  , "endfunction" ])
 
 funcUndefinedLoader :: S.Setting -> VimScript
 funcUndefinedLoader setting = if null functions then mempty else
@@ -305,18 +290,16 @@ funcUndefinedLoader setting = if null functions then mempty else
   , "      endif"
   , "    endfor"
   , "  endfor"
-  , "endfunction"
-  ])
+  , "endfunction" ])
   where functions = [ f | p <- S.plugins setting, f <- P.functions p ]
 
 cmdlineEnterLoader :: S.Setting -> VimScript
 cmdlineEnterLoader setting
-  = HM.foldrWithKey f mempty $
-      foldr (uncurry (HM.insertWith (<>))) HM.empty
-        [ (cmdline, [p]) | p <- S.plugins setting, cmdline <- P.cmdlines p ]
+  = mconcat $ map (uncurry f) $
+      collectSndByFst [(cmdline, p) | p <- S.plugins setting, cmdline <- P.cmdlines p]
   where
-    f :: Cmdline -> [P.Plugin] -> VimScript -> VimScript
-    f cmdline plugins val = val <> VimScript (HM.singleton Plugin
+    f :: Cmdline -> [P.Plugin] -> VimScript
+    f cmdline plugins = VimScript (HM.singleton Plugin
       [ "\" CmdlineEnter " <> (show cmdline)
       , "augroup " <> group
       , "  autocmd!"
@@ -327,8 +310,7 @@ cmdlineEnterLoader setting
       : loadPlugins plugins
       <> [ "  autocmd! " <> group
       , "  augroup! " <> group
-      , "endfunction"
-      ])
+      , "endfunction" ])
       where c = T.concat $ map (show . ord) (unpack (show cmdline))
             group = "miv-cmdline-enter-" <> c
 
@@ -346,8 +328,7 @@ insertEnterLoader setting = if null plugins then mempty else
   <> [ "  autocmd! miv-insert-enter"
   , "  augroup! miv-insert-enter"
   , "  silent! doautocmd InsertEnter"
-  , "endfunction"
-  ])
+  , "endfunction" ])
   where plugins = filter P.insert (S.plugins setting)
 
 pluginLoader :: VimScript
@@ -398,5 +379,4 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "  for n in get(s:dependedby, a:name, [])"
   , "    call miv#load(n)"
   , "  endfor"
-  , "endfunction"
-  ])
+  , "endfunction" ])
