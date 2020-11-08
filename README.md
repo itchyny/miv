@@ -23,7 +23,7 @@ Example vimrc:
 ```vim
 filetype off
 if has('vim_starting')
-  set rtp^=~/.vim/miv/miv/
+  set rtp^=~/.vim/miv/miv
   " or when you set $XDG_DATA_HOME,
   " set rtp^=$XDG_DATA_HOME/miv/miv
 endif
