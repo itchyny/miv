@@ -144,7 +144,7 @@ collectSndByFst xs = [ (fst (ys !! 0), map snd ys)
 pluginConfig :: P.Plugin -> VimScript
 pluginConfig plg
     = VimScript (HM.singleton Plugin $ wrapInfo $
-        wrapEnable plg $ mapleader <> gatherCommand plg <> gatherMapping plg <> P.script plg <> loadScript plg)
+        wrapEnable (P.enable plg) $ mapleader <> gatherCommand plg <> gatherMapping plg <> P.script plg <> loadScript plg)
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " <> P.name plg) : str
@@ -196,7 +196,7 @@ filetypeLoader :: S.Setting -> VimScript
 filetypeLoader setting
   = HM.foldrWithKey f mempty (filetypeLoadPlugins (S.plugins setting) HM.empty)
   where
-    f ft plg val =
+    f ft plugins val =
       case getHeadChar ft of
            Nothing -> val
            Just c ->
@@ -205,8 +205,7 @@ filetypeLoader setting
                   <> VimScript (HM.singleton (Autoload (singleton c))
                        (("function! " <> funcname <> "() abort")
                        : "  setlocal filetype="
-                       :  concat [wrapEnable b
-                       [ "  call miv#load(" <> singleQuote (show b) <> ")"] | b <- plg]
+                       : loadPlugins plugins
                     <> [ "  autocmd! miv-file-type-" <> ft
                        , "  augroup! miv-file-type-" <> ft
                        , "  setlocal filetype=" <> ft
@@ -227,15 +226,21 @@ filetypeLoadPlugins (b:plugins) fts
   | otherwise = filetypeLoadPlugins plugins fts
 filetypeLoadPlugins [] fts = fts
 
-wrapEnable :: P.Plugin -> [Text] -> [Text]
-wrapEnable plg str
+wrapEnable :: Text -> [Text] -> [Text]
+wrapEnable enable str
   | null str = []
-  | T.null (P.enable plg) = str
-  | P.enable plg == "0" = []
-  | otherwise = (indent <> "if " <> P.enable plg)
+  | T.null enable = str
+  | enable == "0" = []
+  | otherwise = (indent <> "if " <> enable)
                            : map ("  "<>) str
              <> [indent <> "endif"]
   where indent = T.takeWhile (==' ') (head str)
+
+loadPlugins :: [P.Plugin] -> [Text]
+loadPlugins plugins = concat
+  [wrapEnable enable
+    ["  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins']
+      | (enable, plugins') <- collectSndByFst [(P.enable p, p) | p <- plugins]]
 
 singleQuote :: Text -> Text
 singleQuote str = "'" <> str <> "'"
@@ -332,8 +337,8 @@ cmdlineEnterLoader setting
       , "  autocmd CmdlineEnter " <> (cmdlinePattern cmdline) <> " call miv#cmdline_enter_" <> c <> "()"
       , "augroup END" ])
       <> VimScript (HM.singleton (Autoload "") $
-       ("function! miv#cmdline_enter_" <> c <> "() abort") :
-      [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins ]
+       ("function! miv#cmdline_enter_" <> c <> "() abort")
+      : loadPlugins plugins
       <> [ "  autocmd! " <> group
       , "  augroup! " <> group
       , "endfunction"
@@ -350,8 +355,8 @@ insertEnterLoader setting = if null plugins then mempty else
   , "  autocmd InsertEnter * call miv#insert_enter()"
   , "augroup END" ])
   <> VimScript (HM.singleton (Autoload "")
-  $ "function! miv#insert_enter() abort" :
-  [ "  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins ]
+  $ "function! miv#insert_enter() abort"
+  : loadPlugins plugins
   <> [ "  autocmd! miv-insert-enter"
   , "  augroup! miv-insert-enter"
   , "  silent! doautocmd InsertEnter"
