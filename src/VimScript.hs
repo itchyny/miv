@@ -6,7 +6,6 @@ import Data.Function (on)
 import Data.Hashable
 import qualified Data.HashMap.Lazy as HM
 import Data.List (foldl', groupBy, sort, sortBy, nub)
-import Data.Maybe (mapMaybe)
 import Data.Text (Text, singleton, unpack, unwords)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
@@ -43,11 +42,6 @@ instance ShowText Place where
   show (Ftplugin s)  = "ftplugin/" <> s <> ".vim"
   show (Syntax s)    = "syntax/" <> s <> ".vim"
 
-autoloadSubdirName :: Place -> Maybe Text
-autoloadSubdirName (Autoload "") = Nothing
-autoloadSubdirName (Autoload s) = Just s
-autoloadSubdirName _ = Nothing
-
 vimScriptToList :: VimScript -> [(Place, [Text])]
 vimScriptToList (VimScript x) = HM.toList x
 
@@ -65,8 +59,7 @@ instance Monoid VimScript where
   mempty = VimScript HM.empty
 
 gatherScript :: S.Setting -> VimScript
-gatherScript setting = addAutoloadNames
-                     $ beforeScript setting
+gatherScript setting = beforeScript setting
                     <> gatherBeforeAfterScript plugins
                     <> gather' "dependon" P.dependon P.loadbefore plugins
                     <> gather' "dependedby" P.dependedby P.loadafter plugins
@@ -103,17 +96,10 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, HM.empty)
         hchar | null (loadScript p) = maybe "_" singleton $ getHeadChar $ show p
               | otherwise = "_"
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
-        au = Autoload hchar
-        vs' = VimScript $ HM.singleton au $ wrapFunction (funcname "before") (P.before p)
-                                         <> wrapFunction (funcname "after") (P.after p)
+        vs' = VimScript $ HM.singleton (Autoload hchar) $
+          wrapFunction (funcname "before") (P.before p) <>
+          wrapFunction (funcname "after") (P.after p)
     gatherScripts [] (vs, hm) = (vs, hm)
-
-addAutoloadNames :: VimScript -> VimScript
-addAutoloadNames h@(VimScript hm)
-  = VimScript (HM.singleton (Autoload "")
-      [ "let s:autoloads = { " <> T.intercalate ", " (((<>": 1") . singleQuote)
-                               <$> mapMaybe autoloadSubdirName (HM.keys hm)) <> " }"])
-   <> h
 
 gather :: Text -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
 gather name f plg
@@ -387,7 +373,7 @@ pluginLoader = VimScript (HM.singleton (Autoload "")
   , "    endfor"
   , "  endfor"
   , "  let name = substitute(tolower(a:name), '[^a-z0-9]', '', 'g')"
-  , "  let au = has_key(s:autoload, name) && get(s:autoloads, s:autoload[name])"
+  , "  let au = has_key(s:autoload, name)"
   , "  if au"
   , "    call miv#{s:autoload[name]}#before_{name}()"
   , "  endif"
