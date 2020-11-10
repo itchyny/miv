@@ -301,15 +301,21 @@ cmdlineEnterLoader setting
     f :: Cmdline -> [P.Plugin] -> VimScript
     f cmdline plugins = VimScript (HM.singleton Plugin
       [ "\" CmdlineEnter " <> (show cmdline)
-      , "augroup " <> group
-      , "  autocmd!"
-      , "  autocmd CmdlineEnter " <> (cmdlinePattern cmdline) <> " call miv#cmdline_enter_" <> c <> "()"
-      , "augroup END" ])
+      , "if exists('#CmdlineEnter')"
+      , "  augroup " <> group
+      , "    autocmd!"
+      , "    autocmd CmdlineEnter " <> (cmdlinePattern cmdline) <> " call miv#cmdline_enter_" <> c <> "()"
+      , "  augroup END"
+      , "else"
+      , "  call miv#cmdline_enter_" <> c <> "()"
+      , "endif" ])
       <> VimScript (HM.singleton (Autoload "") $
        ("function! miv#cmdline_enter_" <> c <> "() abort")
       : loadPlugins plugins
-      <> [ "  autocmd! " <> group
-      , "  augroup! " <> group
+      <> [ "  if exists('#CmdlineEnter')"
+      , "    autocmd! " <> group
+      , "    augroup! " <> group
+      , "  endif"
       , "endfunction" ])
       where c = T.concat $ map (show . ord) (unpack (show cmdline))
             group = "miv-cmdline-enter-" <> c
