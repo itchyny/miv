@@ -146,31 +146,32 @@ loadScript plg
 gatherCommand :: P.Plugin -> [Text]
 gatherCommand plg
   | not (null (P.commands plg))
-    = [show (C.defaultCommand { C.cmdName = c
-        , C.cmdRepText = unwords ["call miv#command(" <> singleQuote (show plg) <> ","
-                               , singleQuote c <> ","
-                               , singleQuote "<bang>" <> ","
-                               , "<q-args>,"
-                               , "expand('<line1>'),"
-                               , "expand('<line2>'))" ] }) | c <- P.commands plg]
+    = [show C.defaultCommand
+          { C.cmdName = c,
+            C.cmdRepText = unwords [
+              "call miv#command(" <> singleQuote (show plg) <> ",",
+              singleQuote c <> ",",
+              singleQuote "<bang>" <> ",",
+              "<q-args>,",
+              "expand('<line1>'),",
+              "expand('<line2>'))"
+          ] } | c <- P.commands plg]
   | otherwise = []
 
 gatherMapping :: P.Plugin -> [Text]
 gatherMapping plg
   | not (null (P.mappings plg))
-    = let genMapping
-            = [\mode ->
-               M.defaultMapping
-                  { M.mapName    = c
-                  , M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
-                        <> singleQuote (show plg) <> ", "
-                        <> singleQuote c <> ", "
-                        <> singleQuote (show mode) <> ")<CR>"
-                  , M.mapMode    = mode } | c <- P.mappings plg]
-          escape m = if m `elem` [ InsertMode, OperatorPendingMode ] then "<ESC>" else ""
-          modes = if null (P.mapmodes plg) then [NormalMode] else map read (P.mapmodes plg)
-          in concat [map (show . f) modes | f <- genMapping]
+    = [show M.defaultMapping
+          { M.mapName = mapping,
+            M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
+                <> singleQuote (show plg) <> ", "
+                <> singleQuote mapping <> ", "
+                <> singleQuote (show mode) <> ")<CR>",
+            M.mapMode = mode
+          } | mapping <- P.mappings plg, mode <- modes]
   | otherwise = []
+    where modes = if null (P.mapmodes plg) then [NormalMode] else map read (P.mapmodes plg)
+          escape mode = if mode `elem` [InsertMode, OperatorPendingMode] then "<ESC>" else ""
 
 beforeScript :: S.Setting -> VimScript
 beforeScript setting = VimScript (HM.singleton Plugin (S.before setting))
