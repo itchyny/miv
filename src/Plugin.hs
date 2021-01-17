@@ -7,6 +7,7 @@ import Data.Text (Text, unpack)
 import Data.YAML
 
 import Cmdline
+import Mode
 import ShowText
 
 data Plugin =
@@ -15,7 +16,7 @@ data Plugin =
             , commands   :: [Text]
             , functions  :: [Text]
             , mappings   :: [Text]
-            , mapmodes   :: [Text]
+            , mapmodes   :: [Mode]
             , cmdlines   :: [Cmdline]
             , insert     :: Bool
             , enable     :: Text

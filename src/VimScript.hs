@@ -8,14 +8,13 @@ import qualified Data.Map.Strict as M
 import Data.Text (Text, singleton, unpack, unwords)
 import qualified Data.Text as T
 import GHC.Generics (Generic)
-import Prelude hiding (show, unwords, read)
+import Prelude hiding (show, unwords)
 
 import Cmdline
 import qualified Command as C
 import qualified Mapping as M
 import Mode
 import qualified Plugin as P
-import ReadText
 import qualified Setting as S
 import ShowText
 
@@ -57,7 +56,7 @@ gatherScript setting = beforeScript setting
                     <> gather' "dependon" P.dependon P.loadbefore plugins
                     <> gather' "dependedby" P.dependedby P.loadafter plugins
                     <> gather "mappings" P.mappings plugins
-                    <> gather "mapmodes" P.mapmodes plugins
+                    <> gather "mapmodes" (map show . P.mapmodes) plugins
                     <> gather "functions" P.functions plugins
                     <> pluginLoader
                     <> mappingLoader
@@ -163,7 +162,7 @@ gatherMapping plg
             M.mapMode = mode
           } | mapping <- P.mappings plg, mode <- modes]
   | otherwise = []
-    where modes = if null (P.mapmodes plg) then [NormalMode] else map read (P.mapmodes plg)
+    where modes = if null (P.mapmodes plg) then [NormalMode] else P.mapmodes plg
           escape mode = if mode `elem` [InsertMode, OperatorPendingMode] then "<ESC>" else ""
 
 beforeScript :: S.Setting -> VimScript

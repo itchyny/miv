@@ -1,10 +1,9 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, LambdaCase #-}
 module Mode where
 
 import Data.Text (unpack)
-import Prelude hiding (read)
+import Data.YAML
 
-import ReadText
 import ShowText
 
 data Mode = NormalMode
@@ -35,17 +34,18 @@ instance ShowText Mode where
   show InesrtVisualMode = "iv"
   show InsertSelectMode = "is"
 
-instance ReadText Mode where
-  read "n"  = NormalMode
-  read "v"  = VisualMode
-  read "s"  = SelectMode
-  read "i"  = InsertMode
-  read "c"  = CmdlineMode
-  read "ex" = ExMode
-  read "o"  = OperatorPendingMode
-  read "r"  = ReplaceMode
-  read "vr" = VirtualReplaceMode
-  read "in" = InsertNormalMode
-  read "iv" = InesrtVisualMode
-  read "is" = InsertSelectMode
-  read m    = error $ "failed to parse mode: " ++ unpack m
+instance FromYAML Mode where
+  parseYAML = withStr "!!str" $ \case
+    "n"  -> return NormalMode
+    "v"  -> return VisualMode
+    "s"  -> return SelectMode
+    "i"  -> return InsertMode
+    "c"  -> return CmdlineMode
+    "ex" -> return ExMode
+    "o"  -> return OperatorPendingMode
+    "r"  -> return ReplaceMode
+    "vr" -> return VirtualReplaceMode
+    "in" -> return InsertNormalMode
+    "iv" -> return InesrtVisualMode
+    "is" -> return InsertSelectMode
+    x    -> fail $ unpack $ "failed to parse mode: " <> x

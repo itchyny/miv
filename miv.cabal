@@ -22,7 +22,6 @@ executable miv
                       , Cmdline
                       , Mapping
                       , ShowText
-                      , ReadText
                       , VimScript
                       , Git
                       , Paths_miv
