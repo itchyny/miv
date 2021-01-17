@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BlockArguments, OverloadedStrings, RecordWildCards #-}
 module Plugin where
 
 import Control.Applicative ((<|>))
@@ -46,7 +46,7 @@ rtpName :: Plugin -> String
 rtpName = unpack . ShowText.show
 
 instance FromYAML Plugin where
-  parseYAML = withMap "!!map" $ \o -> do
+  parseYAML = withMap "!!map" \o -> do
     name <- o .:? "name" .!= ""
     filetypes <- o .: "filetype" <|> (fmap return <$> o .:? "filetype") .!= []
     commands <- o .: "command" <|> (fmap return <$> o .:? "command") .!= []

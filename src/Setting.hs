@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE BlockArguments, OverloadedStrings, RecordWildCards #-}
 module Setting where
 
 import Data.Function (on)
@@ -19,7 +19,7 @@ data Setting =
      } deriving Eq
 
 instance FromYAML Setting where
-  parseYAML = withMap "!!map" $ \o -> do
+  parseYAML = withMap "!!map" \o -> do
     plugins <- pluginMapToList <$> o .:? "plugin" .!= M.empty
     filetype <- M.map lines <$> o .:? "filetype" .!= M.empty
     syntax <- M.map lines <$> o .:? "syntax" .!= M.empty

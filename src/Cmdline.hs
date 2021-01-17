@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, LambdaCase #-}
+{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 module Cmdline where
 
 import Data.Text (Text, unpack)
@@ -20,7 +20,7 @@ instance ShowText Cmdline where
   show CmdlineInput          = "@"
 
 instance FromYAML Cmdline where
-  parseYAML = withStr "!!str" $ \case
+  parseYAML = withStr "!!str" \case
     ":" -> return CmdlineExCommand
     "/" -> return CmdlineForwardSearch
     "?" -> return CmdlineBackwardSearch

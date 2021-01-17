@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE BlockArguments, OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
 import Control.Applicative
@@ -231,13 +231,13 @@ updatePlugin update maybePlugins setting = do
   status <- fmap mconcat <$> displayConsoleRegions $
     mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
   putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
-  unless (null (installed status)) $ do
+  unless (null (installed status)) do
     putStrLn $ "Installed plugin" <> count (installed status) <> ": "
     mapM_ (putStrLn . ("  "<>) . name) (sort (installed status))
-  unless (null (updated status)) $ do
+  unless (null (updated status)) do
     putStrLn $ "Updated plugin" <> count (updated status) <> ": "
     mapM_ (putStrLn . ("  "<>) . name) (sort (updated status))
-  unless (null (failed status)) $ do
+  unless (null (failed status)) do
     putStrLn $ "Failed plugin" <> count (failed status) <> ": "
     mapM_ (putStrLn . ("  "<>) . name) (sort (failed status))
   generatePluginCode setting
@@ -262,13 +262,13 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir </> "miv" </> "doc"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) $ \path -> do
+  P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) \path -> do
     exists <- doesDirectoryExist path
     when exists $
-      void $ do (_, _, _, ph) <- createProcess (proc "sh" ["-c", "cp -R * " <> singleQuote docdir]) {
-                  cwd = Just path
-                }
-                waitForProcess ph
+      void do (_, _, _, ph) <- createProcess (proc "sh" ["-c", "cp -R * " <> singleQuote docdir]) {
+                cwd = Just path
+              }
+              waitForProcess ph
   _ <- system $ "vim -u NONE -i NONE -N -e -s -c 'helptags " <> docdir <> "' -c quit"
   putStrLn "Success in processing helptags."
 
@@ -289,12 +289,12 @@ updateOnePlugin time dir update specified plugin = do
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
   if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
-     then withConsoleRegion Linear $ \region -> do
+     then withConsoleRegion Linear \region -> do
        putStrLn' region "Installing"
        when exists $ removeDirectoryRecursive path
        cloneStatus <- execCommand (unpack $ name plugin) region dir $ cloneCommand repo path
        created <- doesDirectoryExist path
-       when created $ do
+       when created do
          buildPlugin path region
          changeModifiedTime path =<< lastUpdate path
        if cloneStatus /= ExitSuccess || not created
@@ -302,7 +302,7 @@ updateOnePlugin time dir update specified plugin = do
           else return mempty { installed = [plugin] }
      else if update == Install || not (sync plugin)
              then return mempty { nosync = [plugin] }
-             else withConsoleRegion Linear $ \region -> do
+             else withConsoleRegion Linear \region -> do
                lastUpdateTime <- lastUpdate path
                if lastUpdateTime < time - 60 * 60 * 24 * 30 && not specified
                   then do
@@ -387,7 +387,7 @@ cleanDirectory setting = do
              putStr "Really? [y/N] "
              hFlush stdout
              c <- getChar
-             when (c == 'y' || c == 'Y') $ do
+             when (c == 'y' || c == 'Y') do
                mapM_ removeDirectoryRecursive deldirs
                mapM_ removeFile $ delfiles
      else putStrLn "Clean."
@@ -441,12 +441,12 @@ gatherFtdetectScript :: Setting -> IO ()
 gatherFtdetectScript setting = do
   dir <- pluginDirectory
   cleanAndCreateDirectory (dir </> "miv" </> "ftdetect")
-  forM_ (plugins setting) $ \plugin -> do
+  forM_ (plugins setting) \plugin -> do
     let path = rtpName plugin
     exists <- doesDirectoryExist (dir </> path </> "ftdetect")
-    when exists $ do
+    when exists do
       files <- listDirectory (dir </> path </> "ftdetect")
-      forM_ files $ \file ->
+      forM_ files \file ->
         copyFile (dir </> path </> "ftdetect" </> file) (dir </> "miv" </> "ftdetect" </> file)
   putStrLn "Success in gathering ftdetect scripts."
 
@@ -463,7 +463,7 @@ eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
   status <- mconcat <$> mapM (eachOnePlugin command dir) (plugins setting)
-  unless (null (failed' status)) $ do
+  unless (null (failed' status)) do
     putStrLn "Error:"
     mapM_ (putStrLn . ("  "<>) . name) (failed' status)
 

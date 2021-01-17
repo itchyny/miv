@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, LambdaCase #-}
+{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 module Mode where
 
 import Data.Text (unpack)
@@ -35,7 +35,7 @@ instance ShowText Mode where
   show InsertSelectMode = "is"
 
 instance FromYAML Mode where
-  parseYAML = withStr "!!str" $ \case
+  parseYAML = withStr "!!str" \case
     "n"  -> return NormalMode
     "v"  -> return VisualMode
     "s"  -> return SelectMode
