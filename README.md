@@ -1,22 +1,39 @@
-# miv [![CI Status](https://github.com/itchyny/miv/workflows/CI/badge.svg)](https://github.com/itchyny/miv/actions)
+# miv
+[![CI Status](https://github.com/itchyny/miv/workflows/CI/badge.svg)](https://github.com/itchyny/miv/actions)
+[![Hackage](https://img.shields.io/hackage/v/miv.svg)](https://hackage.haskell.org/package/miv)
+[![Release](https://img.shields.io/github/release/itchyny/miv/all.svg)](https://github.com/itchyny/miv/releases)
+[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/miv/blob/master/LICENSE)
+
 ### Vim plugin manager written in Haskell
+The `miv` is a command line tool for managing Vim plugins with a single YAML
+configuration file. The motivation of this tool is
+
+- to generate a Vim plugin loader files in Vim script
+  - A plugin manager written in Vim script build script code and evaluates it
+    on editor startup. But the executed commands do not change unless the
+    user's configurations do not change. Instead of building the commands on
+    editor startup, `miv` generates static plugin loader scripts after plugin
+    installation.
+- to provide a declarative way to manage Vim plugins
+  - Various loading triggers, script configurations and loading dependency can
+    be defined.
+- to provide a command line tool which is friendly to interact with other tools
+  - You can easily update the Vim plugins in cron schedule or from shell script.
 
 ## Installation
 ### Homebrew
 ```sh
- $ brew install itchyny/tap/miv
+brew install itchyny/tap/miv
 ```
 
 ### Build with stack
-```
- $ git clone https://github.com/itchyny/miv
- $ cd miv
- $ stack install
+```sh
+git clone https://github.com/itchyny/miv.git && cd miv && stack install
 ```
 
 ## User guide
-1. Add the miv plugin path to runtimepath in your vimrc.
-2. Create miv config file at `~/.vimrc.yaml`. (or `~/.vim/.vimrc.yaml`, `$XDG_CONFIG_HOME/miv/config.yaml`)
+1. Add the miv plugin path to `runtimepath` in your `.vimrc`.
+2. Create miv configuration file at `~/.vimrc.yaml`. (or `~/.vim/.vimrc.yaml`, `$XDG_CONFIG_HOME/miv/config.yaml`)
 3. Execute `miv install`.
 
 Example vimrc:
@@ -30,108 +47,17 @@ endif
 filetype plugin indent on
 ```
 
-Example miv config file:
+Example miv configuration file (refer to [.vimrc.yaml](https://github.com/itchyny/dotfiles/blob/master/.vimrc.yaml) for how the author configures):
 ```yaml
 plugin:
 
-  Shougo/neocomplete.vim:
-    enable: has('lua')
-    before: |
-      let g:neocomplete#enable_at_startup = 1
-      let g:neocomplete#enable_smart_case = 1
-      let g:neocomplete#max_list = 1000
-
-  thinca/vim-quickrun:
-    command: QuickRun
-    mapping: <Plug>(quickrun)
-    mapleader: \
-    dependon: vimproc
-    script: |
-      noremap <Leader>r <Plug>(quickrun)
-    before: |
-      let g:quickrun_config = {'_': {'runner': 'vimproc', 'runner/vimproc/updatetime': 200, 'split': 'vertical', 'into': 1}}
-
-  Shougo/vimfiler:
-    mapleader: \
-    command:
-      - VimFiler
-      - VimFilerTab
-      - VimFilerBufferDir
-      - VimFilerExplorer
-    dependon:
-      - vimproc
-      - unite
-    script: |
-      nnoremap <silent> <Leader>f :<C-u>VimFilerBufferDir -auto-cd<CR>
-    before: |
-      let g:vimfiler_as_default_explorer = 1
-      let g:vimfiler_sort_type = 'TIME'
-
-  Shougo/vinarise:
-    command: Vinarise
-    loadbefore: vimfiler
-
-  Shougo/unite.vim:
-    command: Unite
-    mapleader: ","
-    function: unite
-    script: |
-      nnoremap <silent><C-n> :<C-u>Unite file/new directory/new<CR>
-      nnoremap <silent><C-o> :<C-u>Unite file file/new<CR>
-      nnoremap <silent><S-l> :<C-u>Unite line<CR>
-    before: |
-      let g:unite_force_overwrite_statusline = 0
-    after: |
-      call unite#custom#profile('default', 'context', {
-            \ 'start_insert' : 1,
-            \ 'prompt_direction': 'top',
-            \ 'hide_icon': 0 })
-
-  Shougo/unite-build:
-    loadafter: unite
-
-  ujihisa/unite-colorscheme:
-    loadafter: unite
-
-  osyo-manga/unite-highlight:
-    loadafter: unite
-
-  Shougo/vimshell.vim:
-    command:
-      - VimShell
-      - VimShellBufferDir
-      - VimShellInteractive
-      - VimShellPop
-      - VimShellTab
-    function: vimshell
-    mapleader: ;
-    dependon: vimproc
-    script: |
-      nnoremap <silent> <Leader>s :<C-u>VimShellBufferDir<CR>
-      nnoremap <silent> H :<C-u>VimShellBufferDir -popup<CR>
-    before: |
-      let g:vimshell_popup_command = 'top new'
-      let g:vimshell_split_command = 'vsplit'
-
-  Shougo/vimproc.vim:
-    build: make
-    function: vimproc
-    loadbefore:
-      - vimfiler
-      - vimshell
-      - quickrun
-
   Align:
     command: Align
-
-  tyru/capture.vim:
-    command: Capture
 
   itchyny/lightline.vim:
     before: |
       let g:lightline = {
             \   'colorscheme': 'wombat',
-            \   'mode_map':{ 'c': 'NORMAL' },
             \ }
 
   itchyny/calendar.vim:
@@ -139,12 +65,48 @@ plugin:
     command: Calendar
     mapping: <Plug>(calendar)
     script: |
-      map <silent> <Leader>z <Plug>(calendar)
+      nmap <Leader>z <Plug>(calendar)
     before: |
       let g:calendar_views = [ 'year', 'month', 'day_3', 'clock' ]
 
-  elzr/vim-json:
-    filetype: json
+  prabirshrestha/vim-lsp:
+    before: |
+      let g:lsp_async_completion = 1
+      let g:lsp_text_edit_enabled = 0
+      let g:lsp_signs_enabled = 0
+      augroup lsp_install
+        autocmd!
+        autocmd User lsp_buffer_enabled setlocal omnifunc=lsp#complete
+      augroup END
+
+  prabirshrestha/asyncomplete.vim: {}
+
+  prabirshrestha/asyncomplete-lsp.vim:
+    dependon: asyncomplete
+
+  prabirshrestha/asyncomplete-buffer.vim:
+    dependon: asyncomplete
+    after: |
+      call asyncomplete#register_source(asyncomplete#sources#buffer#get_source_options({
+          \ 'name': 'buffer',
+          \ 'whitelist': ['*'],
+          \ 'completor': function('asyncomplete#sources#buffer#completor'),
+          \ 'config': {
+          \    'max_buffer_size': 100000,
+          \  },
+          \ }))
+
+  prabirshrestha/asyncomplete-file.vim:
+    dependon: asyncomplete
+    after: |
+      call asyncomplete#register_source(asyncomplete#sources#file#get_source_options({
+          \ 'name': 'file',
+          \ 'whitelist': ['*'],
+          \ 'completor': function('asyncomplete#sources#file#completor'),
+          \ }))
+
+  mattn/vim-lsp-settings:
+    dependon: lsp
 
   mattn/emmet-vim:
     filetype:
@@ -155,8 +117,11 @@ plugin:
     after: |
       autocmd FileType html,css imap <buffer> <tab> <plug>(emmet-expand-abbr)
 
-  wavded/vim-stylus:
-    filetype: stylus
+  elzr/vim-json:
+    filetype: json
+
+  cespare/vim-toml:
+    filetype: toml
 
   groenewege/vim-less:
     filetype: less
@@ -166,9 +131,6 @@ plugin:
 
   jade.vim:
     filetype: jade
-
-  kchmck/vim-coffee-script:
-    filetype: coffee
 
   kana/vim-textobj-user: {}
 
@@ -195,12 +157,7 @@ plugin:
       - al
 
 before: |
-  if v:version < 703
-    finish
-  endif
-
   let g:is_bash = 1
-
   let g:loaded_2html_plugin = 1
   let g:loaded_rrhelper = 1
 
@@ -210,12 +167,7 @@ after: |
 filetype:
   vim: |
     setlocal foldmethod=marker
-  c: |
-    setlocal ofu=ccomplete#Complete
-  html: |
-    setlocal ofu=htmlcomplete#CompleteTags
   css: |
-    setlocal ofu=csscomplete#CompleteCSS
     setlocal iskeyword=37,45,48-57,95,a-z,A-Z,192-255
   make: |
     setlocal noexpandtab
@@ -224,71 +176,75 @@ filetype:
 ```
 
 ## `miv` subcommands
-### `miv install`
-Installs all the plugins.
+The `miv` command has the following subcommands.
 
-### `miv update`
-Updates the plugins (outdated plugins are skipped).
+|command|description|
+|:--|:--|
+|`install`|Installs all the plugins.|
+|`update`|Updates the plugins (outdated plugins are skipped).|
+|`update!`|Updates all the plugins.|
+|`update [plugins]`|Updates the specified plugins.|
+|`clean`|Removes unused directories and files.|
+|`generate`|Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)|
+|`ftdetect`|Gather ftdetect scripts. (`miv install` and `miv update` automatically do this task)|
+|`helptags`|Generates the helptags file. (`miv install` and `miv update` automatically do this task)|
+|`list`|Lists all the plugins.|
+|`edit`|Edits the miv config file.|
+|`command`|Lists the subcommands of `miv`.|
+|`path [plugins]`|Prints the paths of the plugins.|
+|`each [commands]`|Executes the commands each directory of the plugins. For example, you can execute `miv each pwd` or `miv each git gc`.|
+|`help`|Shows the help of `miv`.|
+|`version`|Shows the version of `miv`.|
 
-### `miv update!`
-Updates all the plugins.
+Commands to execute when you want to
 
-### `miv update [plugins]`
-Updates the specified plugins.
-
-### `miv clean`
-Removes unused directories and files.
-
-### `miv generate`
-Generates the miv plugin files. (`miv install` and `miv update` automatically do this task)
-
-### `miv ftdetect`
-Gather ftdetect scripts. (`miv install` and `miv update` automatically do this task)
-
-### `miv helptags`
-Generates the helptags file. (`miv install` and `miv update` automatically do this task)
-
-### `miv list`
-Lists all the plugins.
-
-### `miv edit`
-Edits the miv config file.
-
-### `miv command`
-Lists the subcommands of `miv`.
-
-### `miv path [plugins]`
-Prints the paths of the plugins.
-
-### `miv each [commands]`
-Executes the commands each directory of the plugins. For example, you can execute `miv each pwd` or `miv each git gc`.
-
-### `miv help`
-Shows the help of `miv`.
-
-### `miv version`
-Shows the version of `miv`.
+|do what|command|
+|:--|:--|
+|install a new plugin|`miv edit`, update the configuration file, save, exit the editor and `miv install`|
+|update the installed plugins but skip outdated plugins|`miv update`|
+|update all the installed plugins|`miv update!`|
+|update specific plugins|`miv update [plugin1] [plugin2]..`|
+|uninstall a plugin|`miv edit`, remove the related configurations, `miv generate` (and `miv clean` if you want)|
+|list all the plugins|`miv list`|
+|count the number of plugins|<code>miv list &vert; wc -l</code>|
+|change the current working directory to a plugin directory|`cd "$(miv path [plugin])"`|
+|want a help|`miv help`|
 
 ## Plugin configuration
-- `filetype`: load the plugin on setting the filetype
-- `command`: load the plugin on invoking the command
-- `function`: load the plugin on calling a function matching the value in regex
-- `mapping`: load the plugin on the mapping
-- `mapmode`: specify the mapmode for the `mapping` configuration (for example: `o`, `v`)
-- `cmdline`: specify the cmdline character to load the plugin (for example: `:`, `/`)
-- `insert`: load the plugin on entering the insert mode for the first time
-- `enable`: enable the plugin when the expression (in Vim script) is 1
-- `mapleader`: specify the mapleader (`<Leader>`) for the `script` configuration
-- `script`: script run on startup, specify some configurations or mappings to load the plugin
-- `after`: script run after the plugin is loaded
-- `before`: script run just before the plugin is loaded
-- `dependon`: plugins on which the plugin depends; they are loaded just before the plugin is loaded
-- `dependedby`: (deprecated in favor of `loadafter`) plugins loaded just after the plugin is loaded
-- `loadbefore`: indicates lazy loading, the plugin is loaded just before any of the configured plugins
-- `loadafter`: indicates lazy loading, the plugin is loaded just after any of the configured plugins
-- `submodule`: pull the submodules of the plugin repository
-- `build`: build script after installing and updating
-- `sync`: skip pulling the repository if false
+### Loading triggers for the plugin
+|key|type|description|
+|:--|:--|:--|
+|`filetype`|<code>string &vert; string[]</code>|load the plugin on setting the filetype|
+|`command`|<code>string &vert; string[]</code>|load the plugin on invoking the command|
+|`function`|<code>string &vert; string[]</code>|load the plugin on calling a function matching the value in regex|
+|`mapping`|<code>string &vert; string[]</code>|load the plugin on the mapping|
+|`mapmode`|<code>'n' &vert; 'v' &vert; 's' &vert; 'i' &vert; 'c' &vert; 'ex' &vert; 'o' &vert; 'r' &vert; 'vr' &vert; 'in' &vert; 'iv' &vert; 'is'</code>|specify the `map-modes` for the `mapping` configuration|
+|`cmdline`|<code>':' &vert; '/' &vert; '?' &vert; '@'</code>|the command-line character to load the plugin|
+|`insert`|`boolean`|load the plugin on entering the insert mode for the first time|
+
+### Configurations for the plugin
+|key|type|description|
+|:--|:--|:--|
+|`script`|`string`|script run on startup, specify some configurations or mappings to load the plugin|
+|`after`|`string`|script run after the plugin is loaded|
+|`before`|`string`|script run just before the plugin is loaded|
+|`mapleader`|`string`|the `mapleader` (`<Leader>`) for the `script`|
+
+### Dependency configurations
+|key|type|description|
+|:--|:--|:--|
+|`dependon`|<code>string &vert; string[]</code>|plugins on which the plugin depends; they are loaded just before the plugin is loaded|
+|`dependedby`|<code>string &vert; string[]</code>|(deprecated in favor of `loadafter`) plugins loaded just after the plugin is loaded|
+|`loadbefore`|<code>string &vert; string[]</code>|indicates lazy loading, the plugin is loaded just before any of the configured plugins|
+|`loadafter`|<code>string &vert; string[]</code>|indicates lazy loading, the plugin is loaded just after any of the configured plugins|
+
+### Other miscellaneous configurations
+|key|type|description|
+|:--|:--|:--|
+|`enable`|`string`|enable the plugin when the expression (in Vim script) is truthy|
+|`submodule`|`boolean`|pull the submodules of the repository|
+|`build`|`string`|build shell script to execute after installing and updating|
+|`sync`|`boolean`|skip pulling the repository if the value is `false`|
 
 ## Author
 itchyny (https://github.com/itchyny)
