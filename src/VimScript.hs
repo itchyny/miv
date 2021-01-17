@@ -7,7 +7,6 @@ import Data.List (foldl', groupBy, sort, sortBy, nub)
 import qualified Data.Map.Strict as M
 import Data.Text (Text, singleton, unpack, unwords)
 import qualified Data.Text as T
-import GHC.Generics (Generic)
 import Prelude hiding (show, unwords)
 
 import Cmdline
@@ -25,7 +24,7 @@ data Place = Plugin
            | Autoload Text
            | Ftplugin Text
            | Syntax   Text
-           deriving (Eq, Ord, Generic)
+           deriving (Eq, Ord)
 
 instance ShowText Place where
   show Plugin        = "plugin/miv.vim"
