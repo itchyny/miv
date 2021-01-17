@@ -7,45 +7,36 @@ import Data.YAML
 import ShowText
 
 data Mode = NormalMode
+          | VisualSelectMode
           | VisualMode
           | SelectMode
           | InsertMode
           | CmdlineMode
-          | ExMode
+          | LangArgMode
           | OperatorPendingMode
-          | ReplaceMode
-          | VirtualReplaceMode
-          | InsertNormalMode
-          | InesrtVisualMode
-          | InsertSelectMode
+          | TerminalMode
           deriving (Eq, Ord)
 
 instance ShowText Mode where
   show NormalMode = "n"
-  show VisualMode = "v"
+  show VisualSelectMode = "v"
+  show VisualMode = "x"
   show SelectMode = "s"
   show InsertMode = "i"
   show CmdlineMode = "c"
-  show ExMode = "ex"
+  show LangArgMode = "l"
   show OperatorPendingMode = "o"
-  show ReplaceMode = "r"
-  show VirtualReplaceMode = "vr"
-  show InsertNormalMode = "in"
-  show InesrtVisualMode = "iv"
-  show InsertSelectMode = "is"
+  show TerminalMode = "t"
 
 instance FromYAML Mode where
   parseYAML = withStr "!!str" \case
-    "n"  -> return NormalMode
-    "v"  -> return VisualMode
-    "s"  -> return SelectMode
-    "i"  -> return InsertMode
-    "c"  -> return CmdlineMode
-    "ex" -> return ExMode
-    "o"  -> return OperatorPendingMode
-    "r"  -> return ReplaceMode
-    "vr" -> return VirtualReplaceMode
-    "in" -> return InsertNormalMode
-    "iv" -> return InesrtVisualMode
-    "is" -> return InsertSelectMode
-    x    -> fail $ unpack $ "failed to parse mode: " <> x
+    "n" -> return NormalMode
+    "v" -> return VisualSelectMode
+    "x" -> return VisualMode
+    "s" -> return SelectMode
+    "i" -> return InsertMode
+    "c" -> return CmdlineMode
+    "l" -> return LangArgMode
+    "o" -> return OperatorPendingMode
+    "t" -> return TerminalMode
+    x   -> fail $ unpack $ "failed to parse mode: " <> x

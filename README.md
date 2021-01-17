@@ -218,7 +218,7 @@ Commands to execute when you want to
 |`command`|<code>string &vert; string[]</code>|load the plugin on invoking the command|
 |`function`|<code>string &vert; string[]</code>|load the plugin on calling a function matching the value in regex|
 |`mapping`|<code>string &vert; string[]</code>|load the plugin on the mapping|
-|`mapmode`|<code>'n' &vert; 'v' &vert; 's' &vert; 'i' &vert; 'c' &vert; 'ex' &vert; 'o' &vert; 'r' &vert; 'vr' &vert; 'in' &vert; 'iv' &vert; 'is'</code>|specify the `map-modes` for the `mapping` configuration|
+|`mapmode`|<code>'n' &vert; 'v' &vert; 'x' &vert; 's' &vert; 'i' &vert; 'c' &vert; 'l' &vert; 'o' &vert; 't'</code>|specify the `map-modes` for the `mapping` configuration|
 |`cmdline`|<code>':' &vert; '/' &vert; '?' &vert; '@'</code>|the command-line character to load the plugin|
 |`insert`|`boolean`|load the plugin on entering the insert mode for the first time|
 
