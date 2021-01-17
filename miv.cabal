@@ -34,9 +34,9 @@ executable miv
                       , SafeSemaphore
                       , time
                       , directory
-                      , hashable
-                      , aeson
-                      , yaml
+                      , containers
+                      , HsYAML
+                      , bytestring
                       , text
                       , unordered-containers
                       , monad-parallel
@@ -55,10 +55,10 @@ test-suite spec
                       , process
                       , time
                       , directory
-                      , hashable
+                      , containers
                       , hspec
-                      , aeson
-                      , yaml
+                      , HsYAML
+                      , bytestring
                       , text
                       , unordered-containers
                       , monad-parallel

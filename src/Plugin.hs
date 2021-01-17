@@ -2,9 +2,9 @@
 module Plugin where
 
 import Control.Applicative ((<|>))
-import Data.Aeson
 import qualified Data.Text as T
 import Data.Text (Text, unpack)
+import Data.YAML
 
 import Cmdline
 import ShowText
@@ -44,8 +44,8 @@ instance ShowText Plugin where
 rtpName :: Plugin -> String
 rtpName = unpack . ShowText.show
 
-instance FromJSON Plugin where
-  parseJSON = withObject "plugin" $ \o -> do
+instance FromYAML Plugin where
+  parseYAML = withMap "!!map" $ \o -> do
     name <- o .:? "name" .!= ""
     filetypes <- o .: "filetype" <|> (fmap return <$> o .:? "filetype") .!= []
     commands <- o .: "command" <|> (fmap return <$> o .:? "command") .!= []

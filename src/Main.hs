@@ -8,6 +8,7 @@ import qualified Control.Concurrent.MSem as MSem
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import qualified Control.Monad.Parallel as P
+import qualified Data.ByteString.Lazy as BS
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
@@ -16,7 +17,7 @@ import qualified Data.Text as T
 import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import Data.Yaml (decodeFileEither, prettyPrintParseException)
+import qualified Data.YAML as YAML
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Console.Concurrent ()
@@ -75,10 +76,10 @@ getSetting = do
   maybeFile <- getFirstExistingFile $ return candidates
   case maybeFile of
        Just file -> do
-         maybeSetting <- decodeFileEither file
-         case maybeSetting of
+         cnt <- BS.readFile file
+         case YAML.decode1 cnt of
               Right setting -> return setting
-              Left err -> error $ prettyPrintParseException err
+              Left (pos, err) -> error $ YAML.prettyPosWithSource pos cnt err
        Nothing -> error $ unpack $ unlines $
          "No setting file! Tried following locations:" :
          map (\x -> "  - " <> pack x) candidates

@@ -2,6 +2,7 @@
 module Mode where
 
 import Data.Text (unpack)
+import Prelude hiding (read)
 
 import ReadText
 import ShowText
@@ -18,7 +19,7 @@ data Mode = NormalMode
           | InsertNormalMode
           | InesrtVisualMode
           | InsertSelectMode
-          deriving Eq
+          deriving (Eq, Ord)
 
 instance ShowText Mode where
   show NormalMode = "n"
@@ -47,4 +48,4 @@ instance ReadText Mode where
   read "in" = InsertNormalMode
   read "iv" = InesrtVisualMode
   read "is" = InsertSelectMode
-  read m    = error $ "unknown mode: " ++ unpack m
+  read m    = error $ "failed to parse mode: " ++ unpack m
