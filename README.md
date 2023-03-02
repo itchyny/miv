@@ -2,7 +2,7 @@
 [![CI Status](https://github.com/itchyny/miv/workflows/CI/badge.svg)](https://github.com/itchyny/miv/actions)
 [![Hackage](https://img.shields.io/hackage/v/miv.svg)](https://hackage.haskell.org/package/miv)
 [![Release](https://img.shields.io/github/release/itchyny/miv/all.svg)](https://github.com/itchyny/miv/releases)
-[![MIT License](http://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/miv/blob/master/LICENSE)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/miv/blob/main/LICENSE)
 
 ### Vim plugin manager written in Haskell
 The `miv` is a command line tool for managing Vim plugins with a single YAML
@@ -47,7 +47,7 @@ endif
 filetype plugin indent on
 ```
 
-Example miv configuration file (refer to [.vimrc.yaml](https://github.com/itchyny/dotfiles/blob/master/.vimrc.yaml) for how the author configures):
+Example miv configuration file (refer to [.vimrc.yaml](https://github.com/itchyny/dotfiles/blob/main/.vimrc.yaml) for how the author configures):
 ```yaml
 plugin:
 
