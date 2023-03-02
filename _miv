@@ -1,40 +1,26 @@
 #compdef miv
 
-_miv ()
+_miv()
 {
+  local -i ret=1
 
-  _arguments -C \
-    '1: :->cmds' \
-    '*: :->args' \
-    && ret=0
-
-  local -a list
-
-  if ! command -v miv > /dev/null 2>&1; then
-    return 0
-  fi
+  _arguments ': :->cmds' '*:: :->args' && ret=0
 
   case $state in
-
     (cmds)
-      list=( ${(f)"$(miv command | sed 's/  */:/')"} )
-      _describe -t commands 'Commands' list && ret=0
+      local -a commands=("${(*)${(f)$(miv command)}[@]/ ##/:}")
+      _describe -t commands 'command' commands && ret=0
       ;;
-
     (args)
-      case $line[1] in
+      case $words[1] in
         (install|update|path)
-          list=( ${(f)"$(miv list | sed 's/ .*//')"} )
-          _describe -t plugins "Plugins" list && ret=0
-          ;;
-        (*)
-          _nothing
+          local -a args=("${words[@]:1}")
+          local -a plugins=("${${${(f)$(miv list)}[@]%% *}[@]:|args}")
+          _describe -t plugins 'plugin' plugins && ret=0
           ;;
       esac
       ;;
-
   esac
+
+  return ret
 }
-
-return 0
-
