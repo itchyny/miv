@@ -24,29 +24,30 @@ instance Display MapSilent where
     MapNoSilent -> ""
 
 data Mapping =
-     Mapping { mapName    :: Text
-             , mapRepText :: Text
-             , mapUnique  :: MapUnique
-             , mapSilent  :: MapSilent
-             , mapMode    :: Mode
-     } deriving Eq
+  Mapping {
+    name    :: Text,
+    repText :: Text,
+    unique  :: MapUnique,
+    silent  :: MapSilent,
+    mode    :: Mode
+  } deriving Eq
 
 instance Display Mapping where
   displayBuilder m =
     Builder.fromText $ unwords $ filter (not . null)
-        [ display (mapMode m) <> "noremap"
-        , display (mapUnique m)
-       <> display (mapSilent m)
-        , mapName m
-        , mapRepText m
+        [ display m.mode <> "noremap",
+          display m.unique <> display m.silent,
+          m.name,
+          m.repText
         ]
 
 defaultMapping :: Mapping
-defaultMapping
-  = Mapping { mapName    = ""
-            , mapRepText = ""
-            , mapUnique  = MapUnique
-            , mapSilent  = MapSilent
-            , mapMode    = NormalMode
+defaultMapping =
+  Mapping {
+    name    = "",
+    repText = "",
+    unique  = MapUnique,
+    silent  = MapSilent,
+    mode    = NormalMode
   }
 

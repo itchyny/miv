@@ -9,19 +9,18 @@ import Data.Text qualified as T
 import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
 import Prelude hiding (unwords)
-import Prelude qualified
 
 import Cmdline
-import Command qualified as C
-import Mapping qualified as M
+import Command
+import Mapping
 import Mode
-import Plugin qualified as P
-import Setting qualified as S
+import Plugin
+import Setting
 
 newtype VimScript = VimScript (M.Map Place [Text])
                   deriving Eq
 
-data Place = Plugin
+data Place = Plugin'
            | Autoload Text
            | Ftplugin Text
            | Syntax   Text
@@ -29,7 +28,7 @@ data Place = Plugin
 
 instance Display Place where
   displayBuilder = Builder.fromText . \case
-    Plugin      -> "plugin/miv.vim"
+    Plugin'     -> "plugin/miv.vim"
     Autoload "" -> "autoload/miv.vim"
     Autoload s  -> "autoload/miv/" <> s <> ".vim"
     Ftplugin s  -> "ftplugin/" <> s <> ".vim"
@@ -51,18 +50,18 @@ instance Semigroup VimScript where
 instance Monoid VimScript where
   mempty = VimScript M.empty
 
-gatherScript :: S.Setting -> VimScript
+gatherScript :: Setting -> VimScript
 gatherScript setting = beforeScript setting
-                    <> gatherBeforeAfterScript plugins
-                    <> gather' "dependon" P.dependon P.loadbefore plugins
-                    <> gather' "dependedby" P.dependedby P.loadafter plugins
-                    <> gather "mappings" P.mappings plugins
-                    <> gather "mapmodes" (map display . P.mapmodes) plugins
-                    <> gather "functions" P.functions plugins
+                    <> gatherBeforeAfterScript setting.plugins
+                    <> gather' "dependon" (.dependon) (.loadbefore) setting.plugins
+                    <> gather' "dependedby" (.dependedby) (.loadafter) setting.plugins
+                    <> gather "mappings" (.mappings) setting.plugins
+                    <> gather "mapmodes" (map display . (.mapmodes)) setting.plugins
+                    <> gather "functions" (.functions) setting.plugins
                     <> pluginLoader
                     <> mappingLoader
                     <> commandLoader
-                    <> foldl' (<>) mempty (map pluginConfig plugins)
+                    <> foldl' (<>) mempty (map pluginConfig setting.plugins)
                     <> filetypeLoader setting
                     <> funcUndefinedLoader setting
                     <> cmdlineEnterLoader setting
@@ -70,9 +69,8 @@ gatherScript setting = beforeScript setting
                     <> filetypeScript setting
                     <> syntaxScript setting
                     <> afterScript setting
-  where plugins = S.plugins setting
 
-gatherBeforeAfterScript :: [P.Plugin] -> VimScript
+gatherBeforeAfterScript :: [Plugin] -> VimScript
 gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, M.empty)
   where
     insertAuNameMap :: (VimScript, M.Map Text Text) -> VimScript
@@ -80,9 +78,9 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, M.empty)
           [ "let s:autoload = {" ]
        <> [ "      \\ " <> singleQuote k <> ": " <> singleQuote a <> "," | (k, a) <- M.toList m ]
        <> [ "      \\ }" ]) <> vs
-    gatherScripts :: [P.Plugin] -> (VimScript, M.Map Text Text) -> (VimScript, M.Map Text Text)
+    gatherScripts :: [Plugin] -> (VimScript, M.Map Text Text) -> (VimScript, M.Map Text Text)
     gatherScripts (p:ps) (vs, m)
-            | null (P.before p) && null (P.after p) = gatherScripts ps (vs, m)
+            | null p.before && null p.after = gatherScripts ps (vs, m)
             | otherwise = gatherScripts ps (vs <> vs', M.insert name hchar m)
       where
         name = T.filter isAlphaNum (T.toLower (display p))
@@ -90,97 +88,95 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, M.empty)
               | otherwise = "_"
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
         vs' = VimScript $ M.singleton (Autoload hchar) $
-          wrapFunction (funcname "before") (P.before p) <>
-          wrapFunction (funcname "after") (P.after p)
+          wrapFunction (funcname "before") p.before <>
+          wrapFunction (funcname "after") p.after
     gatherScripts [] (vs, m) = (vs, m)
 
-gather :: Text -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
-gather name f plg
+gather :: Text -> (Plugin -> [Text]) -> [Plugin] -> VimScript
+gather name f plugin
   = VimScript (M.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote (display p)
                     <> ": [ " <> T.intercalate ", " (map singleQuote (f p))  <> " ],"
-        | p <- plg, enabled p, not (null (f p)) ]
+        | p <- plugin, p.enable /= "0", not (null (f p)) ]
    <> [ "      \\ }" ])
-  where enabled p = P.enable p /= "0"
 
-gather' :: Text -> (P.Plugin -> [Text]) -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
-gather' name f g plg
+gather' :: Text -> (Plugin -> [Text]) -> (Plugin -> [Text]) -> [Plugin] -> VimScript
+gather' name f g plugin
   = VimScript (M.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote p
                     <> ": [ " <> T.intercalate ", " (map singleQuote $ sort $ nub q)  <> " ],"
-        | (p, q) <- collectSndByFst $ [ (display p, q) | p <- plg, enabled p, q <- f p ]
-                                   <> [ (q, display p) | p <- plg, enabled p, q <- g p ] ]
+        | (p, q) <- collectSndByFst $ [ (display p, q) | p <- plugin, p.enable /= "0", q <- f p ]
+                                   <> [ (q, display p) | p <- plugin, p.enable /= "0", q <- g p ] ]
    <> [ "      \\ }" ])
-  where enabled p = P.enable p /= "0"
 
 collectSndByFst :: Ord a => [(a,b)] -> [(a,[b])]
 collectSndByFst xs = [ (fst (head ys), map snd ys)
                        | ys <- groupBy ((==) `on` fst) $ sortBy (compare `on'` fst) xs ]
   where on' f g x y = g x `f` g y
 
-pluginConfig :: P.Plugin -> VimScript
-pluginConfig plg
-    = VimScript (M.singleton Plugin $ wrapInfo $
-        wrapEnable (P.enable plg) $ mapleader <> gatherCommand plg <> gatherMapping plg <> P.script plg <> loadScript plg)
+pluginConfig :: Plugin -> VimScript
+pluginConfig plugin
+    = VimScript (M.singleton Plugin' $ wrapInfo $
+        wrapEnable plugin.enable $ mapleader <> gatherCommand plugin <> gatherMapping plugin <> plugin.script <> loadScript plugin)
   where
     wrapInfo [] = []
-    wrapInfo str = ("\" " <> P.name plg) : str
-    mapleader = let s = P.mapleader plg in ["let g:mapleader = " <> singleQuote s | not (T.null s)]
+    wrapInfo str = ("\" " <> plugin.name) : str
+    mapleader = let s = plugin.mapleader in ["let g:mapleader = " <> singleQuote s | not (T.null s)]
 
-loadScript :: P.Plugin -> [Text]
-loadScript plg
-  | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
-             , P.loadafter plg, P.loadbefore plg ] && null (P.cmdlines plg) && not (P.insert plg)
-  = ["call miv#load(" <> singleQuote (display plg) <> ")"]
+loadScript :: Plugin -> [Text]
+loadScript plugin
+  | all null [ plugin.commands, plugin.mappings, plugin.functions, plugin.filetypes
+             , plugin.loadafter, plugin.loadbefore ] && null plugin.cmdlines && not plugin.insert
+  = ["call miv#load(" <> singleQuote (display plugin) <> ")"]
   | otherwise = []
 
-gatherCommand :: P.Plugin -> [Text]
-gatherCommand plg
-  | not (null (P.commands plg))
-    = [display C.defaultCommand
-          { C.cmdName = c,
-            C.cmdRepText = unwords [
-              "call miv#command(" <> singleQuote (display plg) <> ",",
+gatherCommand :: Plugin -> [Text]
+gatherCommand plugin
+  | not (null plugin.commands)
+    = [display (defaultCommand :: Command)
+          { name = c,
+            repText = unwords [
+              "call miv#command(" <> singleQuote (display plugin) <> ",",
               singleQuote c <> ",",
               singleQuote "<bang>" <> ",",
               "<q-args>,",
               "expand('<line1>'),",
               "expand('<line2>'))"
-          ] } | c <- P.commands plg]
+          ] } | c <- plugin.commands]
   | otherwise = []
 
-gatherMapping :: P.Plugin -> [Text]
-gatherMapping plg
-  | not (null (P.mappings plg))
-    = [display M.defaultMapping
-          { M.mapName = mapping,
-            M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
-                <> singleQuote (display plg) <> ", "
+gatherMapping :: Plugin -> [Text]
+gatherMapping plugin
+  | not (null plugin.mappings)
+    = [display defaultMapping
+          { name = mapping,
+            repText = escape mode <> ":<C-u>call miv#mapping("
+                <> singleQuote (display plugin) <> ", "
                 <> singleQuote mapping <> ", "
                 <> singleQuote (display mode) <> ")<CR>",
-            M.mapMode = mode
-          } | mapping <- P.mappings plg, mode <- modes]
+            mode = mode
+          } | mapping <- plugin.mappings, mode <- modes]
   | otherwise = []
-    where modes = if null (P.mapmodes plg) then [NormalMode] else P.mapmodes plg
+    where modes = if null plugin.mapmodes then [NormalMode] else plugin.mapmodes
           escape mode = if mode `elem` [InsertMode, OperatorPendingMode] then "<ESC>" else ""
 
-beforeScript :: S.Setting -> VimScript
-beforeScript setting = VimScript (M.singleton Plugin (S.before setting))
+beforeScript :: Setting -> VimScript
+beforeScript setting = VimScript (M.singleton Plugin' setting.before)
 
-afterScript :: S.Setting -> VimScript
-afterScript setting = VimScript (M.singleton Plugin (S.after setting))
+afterScript :: Setting -> VimScript
+afterScript setting = VimScript (M.singleton Plugin' setting.after)
 
-filetypeLoader :: S.Setting -> VimScript
+filetypeLoader :: Setting -> VimScript
 filetypeLoader setting
   = mconcat $ map (uncurry f) $
-      collectSndByFst [(ft, p) | p <- S.plugins setting, ft <- P.filetypes p]
+      collectSndByFst [(ft, p) | p <- setting.plugins, ft <- p.filetypes]
   where
-    f :: Text -> [P.Plugin] -> VimScript
+    f :: Text -> [Plugin] -> VimScript
     f ft plugins = flip foldMap (getHeadChar ft) $
       \c -> let funcname = "miv#" <> singleton c <> "#load_" <> T.filter isAlphaNum (T.toLower ft)
-                in VimScript (M.singleton Plugin
+                in VimScript (M.singleton Plugin'
                      [ "augroup miv-file-type-" <> ft
                      , "  autocmd!"
                      , "  autocmd FileType " <> ft <> " call " <> funcname <> "()"
@@ -205,20 +201,20 @@ wrapEnable enable str
              <> [indent <> "endif"]
   where indent = T.takeWhile (==' ') (head str)
 
-loadPlugins :: [P.Plugin] -> [Text]
+loadPlugins :: [Plugin] -> [Text]
 loadPlugins plugins = concat
   [wrapEnable enable
     ["  call miv#load(" <> singleQuote (display p) <> ")" | p <- plugins']
-      | (enable, plugins') <- collectSndByFst [(P.enable p, p) | p <- plugins]]
+      | (enable, plugins') <- collectSndByFst [(p.enable, p) | p <- plugins]]
 
 singleQuote :: Text -> Text
 singleQuote str = "'" <> str <> "'"
 
-filetypeScript :: S.Setting -> VimScript
-filetypeScript = foldMap (\(ft, src) -> VimScript (M.singleton (Ftplugin ft) src)) . M.toList . S.filetype
+filetypeScript :: Setting -> VimScript
+filetypeScript setting = foldMap (\(ft, src) -> VimScript (M.singleton (Ftplugin ft) src)) $ M.toList setting.filetype
 
-syntaxScript :: S.Setting -> VimScript
-syntaxScript = foldMap (\(ft, src) -> VimScript (M.singleton (Syntax ft) src)) . M.toList . S.syntax
+syntaxScript :: Setting -> VimScript
+syntaxScript setting = foldMap (\(ft, src) -> VimScript (M.singleton (Syntax ft) src)) $ M.toList setting.syntax
 
 wrapFunction :: Text -> [Text] -> [Text]
 wrapFunction funcname script =
@@ -258,9 +254,9 @@ commandLoader = VimScript (M.singleton (Autoload "")
   , "  endtry"
   , "endfunction" ])
 
-funcUndefinedLoader :: S.Setting -> VimScript
+funcUndefinedLoader :: Setting -> VimScript
 funcUndefinedLoader setting = if null functions then mempty else
-  VimScript (M.singleton Plugin
+  VimScript (M.singleton Plugin'
   [ "\" FuncUndefined"
   , "augroup miv-func-undefined"
   , "  autocmd!"
@@ -285,15 +281,15 @@ funcUndefinedLoader setting = if null functions then mempty else
   , "    endfor"
   , "  endfor"
   , "endfunction" ])
-  where functions = [ f | p <- S.plugins setting, f <- P.functions p ]
+  where functions = [f | p <- setting.plugins, f <- p.functions]
 
-cmdlineEnterLoader :: S.Setting -> VimScript
+cmdlineEnterLoader :: Setting -> VimScript
 cmdlineEnterLoader setting
   = mconcat $ map (uncurry f) $
-      collectSndByFst [(cmdline, p) | p <- S.plugins setting, cmdline <- P.cmdlines p]
+      collectSndByFst [(cmdline, p) | p <- setting.plugins, cmdline <- p.cmdlines]
   where
-    f :: Cmdline -> [P.Plugin] -> VimScript
-    f cmdline plugins = VimScript (M.singleton Plugin
+    f :: Cmdline -> [Plugin] -> VimScript
+    f cmdline plugins = VimScript (M.singleton Plugin'
       [ "\" CmdlineEnter " <> display cmdline
       , "if exists('#CmdlineEnter')"
       , "  augroup " <> group
@@ -314,9 +310,9 @@ cmdlineEnterLoader setting
       where c = T.concat $ map (display . ord) (unpack (display cmdline))
             group = "miv-cmdline-enter-" <> c
 
-insertEnterLoader :: S.Setting -> VimScript
+insertEnterLoader :: Setting -> VimScript
 insertEnterLoader setting = if null plugins then mempty else
-  VimScript (M.singleton Plugin
+  VimScript (M.singleton Plugin'
   [ "\" InsertEnter"
   , "augroup miv-insert-enter"
   , "  autocmd!"
@@ -329,7 +325,7 @@ insertEnterLoader setting = if null plugins then mempty else
   , "  augroup! miv-insert-enter"
   , "  silent! doautocmd InsertEnter"
   , "endfunction" ])
-  where plugins = filter P.insert (S.plugins setting)
+  where plugins = filter (.insert) setting.plugins
 
 pluginLoader :: VimScript
 pluginLoader = VimScript (M.singleton (Autoload "")

@@ -203,18 +203,18 @@ instance Display Update where
     Install -> "install"
     Update  -> "update"
 
-data UpdateStatus
-   = UpdateStatus {
-       installed :: [Plugin],
-       updated :: [Plugin],
-       nosync :: [Plugin],
-       outdated :: [Plugin],
-       failed :: [Plugin]
-   }
+data UpdateStatus =
+  UpdateStatus {
+    installed :: [Plugin],
+    updated :: [Plugin],
+    nosync :: [Plugin],
+    outdated :: [Plugin],
+    failed :: [Plugin]
+  }
 
 instance Semigroup UpdateStatus where
-  UpdateStatus i u n o f <> UpdateStatus i' u' n' o' f'
-    = UpdateStatus (i <> i') (u <> u') (n <> n') (o <> o') (f <> f')
+  UpdateStatus i u n o f <> UpdateStatus i' u' n' o' f' =
+    UpdateStatus (i <> i') (u <> u') (n <> n') (o <> o') (f <> f')
 
 instance Monoid UpdateStatus where
   mempty = UpdateStatus [] [] [] [] []
@@ -222,28 +222,28 @@ instance Monoid UpdateStatus where
 updatePlugin :: Update -> Maybe [String] -> Setting -> IO ()
 updatePlugin update maybePlugins setting = do
   setNumCapabilities =<< getNumProcessors
-  let unknownPlugins = filter (`notElem` map rtpName (plugins setting)) (fromMaybe [] maybePlugins)
+  let unknownPlugins = filter (`notElem` map rtpName setting.plugins) (fromMaybe [] maybePlugins)
   unless (null unknownPlugins) $
-    mapM_ (suggestPlugin (plugins setting)) unknownPlugins
+    mapM_ (suggestPlugin setting.plugins) unknownPlugins
   createPluginDirectory
   dir <- pluginDirectory
   let specified p = rtpName p `elem` fromMaybe [] maybePlugins || maybePlugins == Just []
   let filterplugin p = isNothing maybePlugins || specified p
-  let ps = filter filterplugin (plugins setting)
+  let ps = filter filterplugin setting.plugins
   let count xs = if length xs > 1 then "s (" <> display (length xs) <> ")" else ""
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- fmap mconcat <$> displayConsoleRegions $
     mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
-  putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> display update <> "."
-  unless (null (installed status)) do
-    putStrLn $ "Installed plugin" <> count (installed status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (sort (installed status))
-  unless (null (updated status)) do
-    putStrLn $ "Updated plugin" <> count (updated status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (sort (updated status))
-  unless (null (failed status)) do
-    putStrLn $ "Failed plugin" <> count (failed status) <> ": "
-    mapM_ (putStrLn . ("  "<>) . name) (sort (failed status))
+  putStrLn $ (if null status.failed then "Success" else "Error occured") <> " in " <> display update <> "."
+  unless (null status.installed) do
+    putStrLn $ "Installed plugin" <> count status.installed <> ": "
+    mapM_ (\p -> putStrLn ("  " <> p.name)) (sort status.installed)
+  unless (null status.updated) do
+    putStrLn $ "Updated plugin" <> count status.updated <> ": "
+    mapM_ (\p -> putStrLn ("  " <> p.name)) (sort status.updated)
+  unless (null status.failed) do
+    putStrLn $ "Failed plugin" <> count status.failed <> ": "
+    mapM_ (\p -> putStrLn ("  " <> p.name)) (sort status.failed)
   generatePluginCode setting
   gatherFtdetectScript setting
   generateHelpTags setting
@@ -266,7 +266,7 @@ generateHelpTags setting = do
   dir <- pluginDirectory
   let docdir = dir </> "miv" </> "doc"
   cleanAndCreateDirectory docdir
-  P.forM_ (map (\p -> dir </> rtpName p </> "doc") (plugins setting)) \path -> do
+  P.forM_ (map (\p -> dir </> rtpName p </> "doc") setting.plugins) \path -> do
     exists <- doesDirectoryExist path
     when exists $
       void do (_, _, _, ph) <- createProcess (proc "sh" ["-c", "cp -R * " <> singleQuote docdir]) {
@@ -285,18 +285,18 @@ lastUpdatePlugin dir plugin = do
 updateOnePlugin :: Integer -> FilePath -> Update -> Bool -> Plugin -> IO UpdateStatus
 updateOnePlugin time dir update specified plugin = do
   let path = dir </> rtpName plugin
-      repo = vimScriptRepo (name plugin)
-      cloneCommand = if submodule plugin then cloneSubmodule else clone
-      pullCommand = if submodule plugin then pullSubmodule else pull
-      putStrLn' region = setConsoleRegion region . ((name plugin <> ": ") <>)
-      finish' region = finishConsoleRegion region . ((name plugin <> ": ") <>)
+      repo = vimScriptRepo plugin.name
+      cloneCommand = if plugin.submodule then cloneSubmodule else clone
+      pullCommand = if plugin.submodule then pullSubmodule else pull
+      putStrLn' region = setConsoleRegion region . (plugin.name<>) . (": "<>)
+      finish' region = finishConsoleRegion region . (plugin.name<>) . (": "<>)
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
-  if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
+  if not exists || (gitstatus /= ExitSuccess && not plugin.sync)
      then withConsoleRegion Linear \region -> do
        putStrLn' region "Installing"
        when exists $ removeDirectoryRecursive path
-       cloneStatus <- execCommand (unpack $ name plugin) region dir $ cloneCommand repo path
+       cloneStatus <- execCommand (unpack plugin.name) region dir $ cloneCommand repo path
        created <- doesDirectoryExist path
        when created do
          buildPlugin path region
@@ -304,7 +304,7 @@ updateOnePlugin time dir update specified plugin = do
        if cloneStatus /= ExitSuccess || not created
           then return mempty { failed = [plugin] }
           else return mempty { installed = [plugin] }
-     else if update == Install || not (sync plugin)
+     else if update == Install || not plugin.sync
              then return mempty { nosync = [plugin] }
              else withConsoleRegion Linear \region -> do
                lastUpdateTime <- lastUpdate path
@@ -314,7 +314,7 @@ updateOnePlugin time dir update specified plugin = do
                     return mempty { outdated = [plugin] }
                   else do
                     putStrLn' region "Pulling"
-                    pullStatus <- execCommand (unpack $ name plugin) region dir $ pullCommand path
+                    pullStatus <- execCommand (unpack plugin.name) region dir $ pullCommand path
                     newUpdateTime <- lastUpdate path
                     if pullStatus /= ExitSuccess
                        then return $ mempty { failed = [plugin] }
@@ -328,9 +328,9 @@ updateOnePlugin time dir update specified plugin = do
             when (mtime > 0) $ let ctime = fromInteger mtime
                                    in setFileTimes path ctime ctime
           buildPlugin path region = do
-            let command = build plugin
+            let command = plugin.build
             unless (T.null command) $
-              void $ execCommand (unpack $ name plugin) region path (unpack command)
+              void $ execCommand (unpack plugin.name) region path (unpack command)
 
 singleQuote :: String -> String
 singleQuote str = "'" <> str <> "'"
@@ -365,8 +365,8 @@ vimScriptRepo pluginname | T.any (=='/') pluginname = unpack pluginname
                          | otherwise = unpack $ "vim-scripts/" <> pluginname
 
 listPlugin :: Setting -> IO ()
-listPlugin setting = mapM_ putStrLn $ space $ map format $ plugins setting
-  where format p = [display p, name p, pack $ gitUrl (vimScriptRepo (name p))]
+listPlugin setting = mapM_ putStrLn $ space $ map format $ setting.plugins
+  where format (p :: Plugin) = [display p, p.name, pack $ gitUrl (vimScriptRepo p.name)]
         space xs =
           let max0 = maximum (map (T.length . (!!0)) xs) + 1
               max1 = maximum (map (T.length . (!!1)) xs) + 1
@@ -378,7 +378,7 @@ cleanDirectory setting = do
   dir <- pluginDirectory
   createDirectoryIfMissing True dir
   cnt <- listDirectory dir
-  let paths = "miv" : map (unpack . display) (plugins setting)
+  let paths = "miv" : map (unpack . display) setting.plugins
       delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
   deldirs <- filterM doesDirectoryExist delpath'
   files <- getDirectoryFiles (dir </> "miv") $ unpack . display . ($ "*") <$> [ Autoload, Ftplugin, Syntax ]
@@ -435,7 +435,7 @@ generatePluginCode setting = do
   createDirectoryIfMissing True (dir </> "autoload" </> "miv")
   createDirectoryIfMissing True (dir </> "ftplugin")
   createDirectoryIfMissing True (dir </> "syntax")
-  unless (all (null . dependedby) (plugins setting)) $
+  unless (all (null . (.dependedby)) setting.plugins) $
     hPutStrLn stderr "`dependedby` is deprecated in favor of `loadafter`"
   P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
           (vimScriptToList (gatherScript setting))
@@ -445,7 +445,7 @@ gatherFtdetectScript :: Setting -> IO ()
 gatherFtdetectScript setting = do
   dir <- pluginDirectory
   cleanAndCreateDirectory (dir </> "miv" </> "ftdetect")
-  forM_ (plugins setting) \plugin -> do
+  forM_ setting.plugins \plugin -> do
     let path = rtpName plugin
     exists <- doesDirectoryExist (dir </> path </> "ftdetect")
     when exists do
@@ -466,10 +466,10 @@ eachPlugin :: String -> Setting -> IO ()
 eachPlugin command setting = do
   createPluginDirectory
   dir <- pluginDirectory
-  status <- mconcat <$> mapM (eachOnePlugin command dir) (plugins setting)
-  unless (null (failed' status)) do
+  status <- mconcat <$> mapM (eachOnePlugin command dir) setting.plugins
+  unless (null status.failed') do
     putStrLn "Error:"
-    mapM_ (putStrLn . ("  "<>) . name) (failed' status)
+    mapM_ (\p -> putStrLn ("  " <> p.name)) status.failed'
 
 eachOnePlugin :: String -> FilePath -> Plugin -> IO EachStatus
 eachOnePlugin command dir plugin = do
@@ -490,7 +490,7 @@ eachHelp = mapM_ putStrLn [ "Specify command:", "  miv each [command]" ]
 
 pathPlugin :: [String] -> Setting -> IO ()
 pathPlugin plugins' setting = do
-  let ps = filter (\p -> rtpName p `elem` plugins' || null plugins') (plugins setting)
+  let ps = filter (\p -> rtpName p `elem` plugins' || null plugins') setting.plugins
   dir <- pluginDirectory
   forM_ ps (\plugin -> putStrLn $ pack (dir </> unpack (display plugin)))
 

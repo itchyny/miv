@@ -10,12 +10,13 @@ import Prelude hiding (lines)
 import Plugin
 
 data Setting =
-     Setting { plugins  :: [Plugin]
-             , filetype :: M.Map Text [Text]
-             , syntax   :: M.Map Text [Text]
-             , before   :: [Text]
-             , after    :: [Text]
-     } deriving Eq
+  Setting {
+    plugins  :: [Plugin],
+    filetype :: M.Map Text [Text],
+    syntax   :: M.Map Text [Text],
+    before   :: [Text],
+    after    :: [Text]
+  } deriving Eq
 
 instance FromYAML Setting where
   parseYAML = withMap "!!map" \o -> do
@@ -25,7 +26,7 @@ instance FromYAML Setting where
     before <- lines <$> o .:? "before" .!= ""
     after <- lines <$> o .:? "after" .!= ""
     return Setting {..}
-      where pluginMapToList = sortWith name . M.foldlWithKey' (\a k v -> v { name = k } : a) []
+      where pluginMapToList = sortWith (.name) . M.foldlWithKey' (\a k v -> v { name = k } : a) []
 
 sortWith :: Ord b => (a -> b) -> [a] -> [a]
 sortWith = sortBy . on compare

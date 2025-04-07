@@ -11,30 +11,31 @@ import Cmdline
 import Mode
 
 data Plugin =
-     Plugin { name       :: Text
-            , filetypes  :: [Text]
-            , commands   :: [Text]
-            , functions  :: [Text]
-            , mappings   :: [Text]
-            , mapmodes   :: [Mode]
-            , cmdlines   :: [Cmdline]
-            , insert     :: Bool
-            , enable     :: Text
-            , sync       :: Bool
-            , mapleader  :: Text
-            , script     :: [Text]
-            , after      :: [Text]
-            , before     :: [Text]
-            , dependon   :: [Text]
-            , dependedby :: [Text]
-            , loadafter  :: [Text]
-            , loadbefore :: [Text]
-            , build      :: Text
-            , submodule  :: Bool
-     } deriving (Eq, Ord)
+  Plugin {
+    name       :: Text,
+    filetypes  :: [Text],
+    commands   :: [Text],
+    functions  :: [Text],
+    mappings   :: [Text],
+    mapmodes   :: [Mode],
+    cmdlines   :: [Cmdline],
+    insert     :: Bool,
+    enable     :: Text,
+    sync       :: Bool,
+    mapleader  :: Text,
+    script     :: [Text],
+    after      :: [Text],
+    before     :: [Text],
+    dependon   :: [Text],
+    dependedby :: [Text],
+    loadafter  :: [Text],
+    loadbefore :: [Text],
+    build      :: Text,
+    submodule  :: Bool
+  } deriving (Eq, Ord)
 
 instance Display Plugin where
-  displayBuilder plg = Builder.fromText $ subst (name plg)
+  displayBuilder plugin = Builder.fromText $ subst plugin.name
     where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
                   | ".git" `T.isSuffixOf` s = subst $ T.take (T.length s - 4) s
                   | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s

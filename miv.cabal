@@ -16,10 +16,13 @@ executable miv
   ghc-options:          -threaded -Wall
   default-language:     Haskell2010
   default-extensions:   BlockArguments
-                      , LambdaCase
                       , ImportQualifiedPost
+                      , LambdaCase
+                      , NoFieldSelectors
+                      , OverloadedRecordDot
                       , OverloadedStrings
                       , RecordWildCards
+                      , ScopedTypeVariables
   other-modules:        Plugin
                       , Setting
                       , Mode

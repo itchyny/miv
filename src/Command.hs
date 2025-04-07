@@ -81,43 +81,44 @@ instance Display CmdComplete where
     CmdComplete complete -> "-complete=" <> complete
 
 data Command =
-     Command { cmdName     :: Text
-             , cmdRepText  :: Text
-             , cmdBang     :: CmdBang
-             , cmdBar      :: CmdBar
-             , cmdRegister :: CmdRegister
-             , cmdBuffer   :: CmdBuffer
-             , cmdRange    :: CmdRange
-             , cmdArg      :: CmdArg
-             , cmdComplete :: CmdComplete
-     } deriving Eq
+  Command {
+    name     :: Text,
+    repText  :: Text,
+    bang     :: CmdBang,
+    bar      :: CmdBar,
+    register :: CmdRegister,
+    buffer   :: CmdBuffer,
+    range    :: CmdRange,
+    arg      :: CmdArg,
+    complete :: CmdComplete
+  } deriving Eq
 
 instance Display Command where
   displayBuilder cmd =
     Builder.fromText $ unwords $
       filter (not . T.null)
-        [ "command!"
-        , display (cmdBang cmd)
-        , display (cmdBar cmd)
-        , display (cmdRegister cmd)
-        , display (cmdBuffer cmd)
-        , display (cmdRange cmd)
-        , display (cmdArg cmd)
-        , display (cmdComplete cmd)
-        , cmdName cmd
-        , cmdRepText cmd
-        ]
+        [ "command!",
+          display cmd.bang,
+          display cmd.bar,
+          display cmd.register,
+          display cmd.buffer,
+          display cmd.range,
+          display cmd.arg,
+          display cmd.complete,
+          cmd.name,
+          cmd.repText ]
 
 defaultCommand :: Command
-defaultCommand
- = Command { cmdName     = ""
-           , cmdRepText  = ""
-           , cmdBang     = CmdBang
-           , cmdBar      = CmdNoBar
-           , cmdRegister = CmdNoRegister
-           , cmdBuffer   = CmdNoBuffer
-           , cmdRange    = CmdRange
-           , cmdArg      = CmdNonNegArg
-           , cmdComplete = CmdComplete ""
- }
+defaultCommand =
+  Command {
+    name     = "",
+    repText  = "",
+    bang     = CmdBang,
+    bar      = CmdNoBar,
+    register = CmdNoRegister,
+    buffer   = CmdNoBuffer,
+    range    = CmdRange,
+    arg      = CmdNonNegArg,
+    complete = CmdComplete ""
+  }
 
