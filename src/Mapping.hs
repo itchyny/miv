@@ -1,24 +1,27 @@
 module Mapping where
 
 import Data.Text (Text, unwords, null)
-import Prelude hiding (show, unwords, null)
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..), display)
+import Prelude hiding (unwords, null)
 
 import Mode
-import ShowText
 
 data MapUnique = MapUnique | MapNoUnique
                deriving Eq
 
-instance ShowText MapUnique where
-  show MapUnique = "<unique>"
-  show MapNoUnique = ""
+instance Display MapUnique where
+  displayBuilder = Builder.fromText . \case
+    MapUnique   -> "<unique>"
+    MapNoUnique -> ""
 
 data MapSilent = MapSilent | MapNoSilent
                deriving Eq
 
-instance ShowText MapSilent where
-  show MapSilent = "<silent>"
-  show MapNoSilent = ""
+instance Display MapSilent where
+  displayBuilder = Builder.fromText . \case
+    MapSilent   -> "<silent>"
+    MapNoSilent -> ""
 
 data Mapping =
      Mapping { mapName    :: Text
@@ -28,14 +31,15 @@ data Mapping =
              , mapMode    :: Mode
      } deriving Eq
 
-instance ShowText Mapping where
-  show m = unwords (filter (not . null)
-          [ show (mapMode m) <> "noremap"
-          , show (mapUnique m)
-         <> show (mapSilent m)
-          , mapName m
-          , mapRepText m
-          ])
+instance Display Mapping where
+  displayBuilder m =
+    Builder.fromText $ unwords $ filter (not . null)
+        [ display (mapMode m) <> "noremap"
+        , display (mapUnique m)
+       <> display (mapSilent m)
+        , mapName m
+        , mapRepText m
+        ]
 
 defaultMapping :: Mapping
 defaultMapping

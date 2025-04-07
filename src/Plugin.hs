@@ -3,11 +3,12 @@ module Plugin where
 import Control.Applicative ((<|>))
 import Data.Text (Text, unpack)
 import Data.Text qualified as T
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..), display)
 import Data.YAML
 
 import Cmdline
 import Mode
-import ShowText
 
 data Plugin =
      Plugin { name       :: Text
@@ -32,8 +33,8 @@ data Plugin =
             , submodule  :: Bool
      } deriving (Eq, Ord)
 
-instance ShowText Plugin where
-  show plg = subst (name plg)
+instance Display Plugin where
+  displayBuilder plg = Builder.fromText $ subst (name plg)
     where subst s | T.any (=='/') s = subst (T.tail $ T.dropWhile (/='/') s)
                   | ".git" `T.isSuffixOf` s = subst $ T.take (T.length s - 4) s
                   | ".vim" `T.isSuffixOf` s = T.take (T.length s - 4) s
@@ -42,7 +43,7 @@ instance ShowText Plugin where
                   | otherwise = T.filter (`notElem`("!?;:/<>()[]{}|~'\"" :: String)) s
 
 rtpName :: Plugin -> String
-rtpName = unpack . ShowText.show
+rtpName = unpack . display
 
 instance FromYAML Plugin where
   parseYAML = withMap "!!map" \o -> do

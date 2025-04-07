@@ -1,9 +1,9 @@
 module Mode where
 
 import Data.Text (unpack)
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..))
 import Data.YAML
-
-import ShowText
 
 data Mode = NormalMode
           | VisualSelectMode
@@ -16,16 +16,17 @@ data Mode = NormalMode
           | TerminalMode
           deriving (Eq, Ord)
 
-instance ShowText Mode where
-  show NormalMode = "n"
-  show VisualSelectMode = "v"
-  show VisualMode = "x"
-  show SelectMode = "s"
-  show InsertMode = "i"
-  show CmdlineMode = "c"
-  show LangArgMode = "l"
-  show OperatorPendingMode = "o"
-  show TerminalMode = "t"
+instance Display Mode where
+  displayBuilder = Builder.fromText . \case
+    NormalMode          -> "n"
+    VisualSelectMode    -> "v"
+    VisualMode          -> "x"
+    SelectMode          -> "s"
+    InsertMode          -> "i"
+    CmdlineMode         -> "c"
+    LangArgMode         -> "l"
+    OperatorPendingMode -> "o"
+    TerminalMode        -> "t"
 
 instance FromYAML Mode where
   parseYAML = withStr "!!str" \case

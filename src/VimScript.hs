@@ -6,7 +6,9 @@ import Data.List (foldl', groupBy, sort, sortBy, nub)
 import Data.Map.Strict qualified as M
 import Data.Text (Text, singleton, unpack, unwords)
 import Data.Text qualified as T
-import Prelude hiding (show, unwords)
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..), display)
+import Prelude hiding (unwords)
 import Prelude qualified
 
 import Cmdline
@@ -15,7 +17,6 @@ import Mapping qualified as M
 import Mode
 import Plugin qualified as P
 import Setting qualified as S
-import ShowText
 
 newtype VimScript = VimScript (M.Map Place [Text])
                   deriving Eq
@@ -26,12 +27,13 @@ data Place = Plugin
            | Syntax   Text
            deriving (Eq, Ord)
 
-instance ShowText Place where
-  show Plugin        = "plugin/miv.vim"
-  show (Autoload "") = "autoload/miv.vim"
-  show (Autoload s)  = "autoload/miv/" <> s <> ".vim"
-  show (Ftplugin s)  = "ftplugin/" <> s <> ".vim"
-  show (Syntax s)    = "syntax/" <> s <> ".vim"
+instance Display Place where
+  displayBuilder = Builder.fromText . \case
+    Plugin      -> "plugin/miv.vim"
+    Autoload "" -> "autoload/miv.vim"
+    Autoload s  -> "autoload/miv/" <> s <> ".vim"
+    Ftplugin s  -> "ftplugin/" <> s <> ".vim"
+    Syntax s    -> "syntax/" <> s <> ".vim"
 
 vimScriptToList :: VimScript -> [(Place, [Text])]
 vimScriptToList (VimScript x) = M.toList x
@@ -55,7 +57,7 @@ gatherScript setting = beforeScript setting
                     <> gather' "dependon" P.dependon P.loadbefore plugins
                     <> gather' "dependedby" P.dependedby P.loadafter plugins
                     <> gather "mappings" P.mappings plugins
-                    <> gather "mapmodes" (map show . P.mapmodes) plugins
+                    <> gather "mapmodes" (map display . P.mapmodes) plugins
                     <> gather "functions" P.functions plugins
                     <> pluginLoader
                     <> mappingLoader
@@ -83,8 +85,8 @@ gatherBeforeAfterScript x = insertAuNameMap $ gatherScripts x (mempty, M.empty)
             | null (P.before p) && null (P.after p) = gatherScripts ps (vs, m)
             | otherwise = gatherScripts ps (vs <> vs', M.insert name hchar m)
       where
-        name = T.filter isAlphaNum (T.toLower (show p))
-        hchar | null (loadScript p) = maybe "_" singleton $ getHeadChar $ show p
+        name = T.filter isAlphaNum (T.toLower (display p))
+        hchar | null (loadScript p) = maybe "_" singleton $ getHeadChar $ display p
               | otherwise = "_"
         funcname str = "miv#" <> hchar <> "#" <> str <> "_" <> name
         vs' = VimScript $ M.singleton (Autoload hchar) $
@@ -96,7 +98,7 @@ gather :: Text -> (P.Plugin -> [Text]) -> [P.Plugin] -> VimScript
 gather name f plg
   = VimScript (M.singleton (Autoload "") $
       [ "let s:" <> name <> " = {" ]
-   <> [ "      \\ " <> singleQuote (show p)
+   <> [ "      \\ " <> singleQuote (display p)
                     <> ": [ " <> T.intercalate ", " (map singleQuote (f p))  <> " ],"
         | p <- plg, enabled p, not (null (f p)) ]
    <> [ "      \\ }" ])
@@ -108,8 +110,8 @@ gather' name f g plg
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote p
                     <> ": [ " <> T.intercalate ", " (map singleQuote $ sort $ nub q)  <> " ],"
-        | (p, q) <- collectSndByFst $ [ (show p, q) | p <- plg, enabled p, q <- f p ]
-                                   <> [ (q, show p) | p <- plg, enabled p, q <- g p ] ]
+        | (p, q) <- collectSndByFst $ [ (display p, q) | p <- plg, enabled p, q <- f p ]
+                                   <> [ (q, display p) | p <- plg, enabled p, q <- g p ] ]
    <> [ "      \\ }" ])
   where enabled p = P.enable p /= "0"
 
@@ -131,16 +133,16 @@ loadScript :: P.Plugin -> [Text]
 loadScript plg
   | all null [ P.commands plg, P.mappings plg, P.functions plg, P.filetypes plg
              , P.loadafter plg, P.loadbefore plg ] && null (P.cmdlines plg) && not (P.insert plg)
-  = ["call miv#load(" <> singleQuote (show plg) <> ")"]
+  = ["call miv#load(" <> singleQuote (display plg) <> ")"]
   | otherwise = []
 
 gatherCommand :: P.Plugin -> [Text]
 gatherCommand plg
   | not (null (P.commands plg))
-    = [show C.defaultCommand
+    = [display C.defaultCommand
           { C.cmdName = c,
             C.cmdRepText = unwords [
-              "call miv#command(" <> singleQuote (show plg) <> ",",
+              "call miv#command(" <> singleQuote (display plg) <> ",",
               singleQuote c <> ",",
               singleQuote "<bang>" <> ",",
               "<q-args>,",
@@ -152,12 +154,12 @@ gatherCommand plg
 gatherMapping :: P.Plugin -> [Text]
 gatherMapping plg
   | not (null (P.mappings plg))
-    = [show M.defaultMapping
+    = [display M.defaultMapping
           { M.mapName = mapping,
             M.mapRepText = escape mode <> ":<C-u>call miv#mapping("
-                <> singleQuote (show plg) <> ", "
+                <> singleQuote (display plg) <> ", "
                 <> singleQuote mapping <> ", "
-                <> singleQuote (show mode) <> ")<CR>",
+                <> singleQuote (display mode) <> ")<CR>",
             M.mapMode = mode
           } | mapping <- P.mappings plg, mode <- modes]
   | otherwise = []
@@ -206,7 +208,7 @@ wrapEnable enable str
 loadPlugins :: [P.Plugin] -> [Text]
 loadPlugins plugins = concat
   [wrapEnable enable
-    ["  call miv#load(" <> singleQuote (show p) <> ")" | p <- plugins']
+    ["  call miv#load(" <> singleQuote (display p) <> ")" | p <- plugins']
       | (enable, plugins') <- collectSndByFst [(P.enable p, p) | p <- plugins]]
 
 singleQuote :: Text -> Text
@@ -292,7 +294,7 @@ cmdlineEnterLoader setting
   where
     f :: Cmdline -> [P.Plugin] -> VimScript
     f cmdline plugins = VimScript (M.singleton Plugin
-      [ "\" CmdlineEnter " <> show cmdline
+      [ "\" CmdlineEnter " <> display cmdline
       , "if exists('#CmdlineEnter')"
       , "  augroup " <> group
       , "    autocmd!"
@@ -309,7 +311,7 @@ cmdlineEnterLoader setting
       , "    augroup! " <> group
       , "  endif"
       , "endfunction" ])
-      where c = T.concat $ map (show . ord) (unpack (show cmdline))
+      where c = T.concat $ map (display . ord) (unpack (display cmdline))
             group = "miv-cmdline-enter-" <> c
 
 insertEnterLoader :: S.Setting -> VimScript

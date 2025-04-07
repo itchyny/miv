@@ -13,12 +13,14 @@ import Data.List (foldl', isPrefixOf, nub, sort, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Text (Text, unlines, pack, unpack)
 import Data.Text qualified as T
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..), display)
 import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
 import Data.YAML qualified as YAML
 import GHC.Conc (getNumProcessors, setNumCapabilities)
-import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
+import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr)
 import System.Console.Concurrent ()
 import System.Console.Regions
 import System.Directory
@@ -36,7 +38,6 @@ import Git
 import Paths_miv (version)
 import Plugin
 import Setting
-import ShowText
 import VimScript hiding (singleQuote)
 
 nameversion :: Text
@@ -102,12 +103,14 @@ printUsage :: IO ()
 printUsage = mapM_ putStrLn usage
 
 commandHelp :: IO ()
-commandHelp = mapM_ (putStrLn . show) arguments
+commandHelp = mapM_ (putStrLn . display) arguments
 
 newtype Argument = Argument (Text, Text)
                  deriving (Eq, Ord)
-instance ShowText Argument where
-  show (Argument (x, y)) = x <> T.replicate (10 - T.length x) " " <> y
+
+instance Display Argument where
+  displayBuilder (Argument (x, y)) = Builder.fromText $
+    x <> T.replicate (10 - T.length x) " " <> y
 
 arguments :: [Argument]
 arguments = map Argument
@@ -133,7 +136,7 @@ usage = [ nameversion
         , ""
         , "Commands:"
         ]
-     <> map (T.append "  " . show) arguments
+     <> map (T.append "  " . display) arguments
      <> [ ""
         , "You can install the plugins by the following command:"
         , "  miv install"
@@ -177,7 +180,7 @@ suggestCommand arg = do
       containedcommands = [y | y@(Argument (x, _)) <- arguments, length arg > 1 && arg `isContainedIn` unpack x]
   putStrLn $ "Unknown command: " <> pack arg
   putStrLn "Probably:"
-  mapM_ (putStrLn . ("  "<>) . show) (if null prefixcommands then nub (containedcommands <> mincommands) else prefixcommands)
+  mapM_ (putStrLn . ("  "<>) . display) (if null prefixcommands then nub (containedcommands <> mincommands) else prefixcommands)
 
 isContainedIn :: Eq a => [a] -> [a] -> Bool
 isContainedIn xxs@(x:xs) (y:ys) = x == y && xs `isContainedIn` ys || xxs `isContainedIn` ys
@@ -191,12 +194,14 @@ suggestPlugin plugin arg = do
       minplugins = [y | (x, y) <- distplugins, x == mindist]
   putStrLn $ "Unknown plugin: " <> pack arg
   putStrLn "Probably:"
-  mapM_ (putStrLn . ("  "<>) . show) minplugins
+  mapM_ (putStrLn . ("  "<>) . display) minplugins
 
 data Update = Install | Update deriving Eq
-instance ShowText Update where
-  show Install = "installing"
-  show Update = "updating"
+
+instance Display Update where
+  displayBuilder = Builder.fromText . \case
+    Install -> "install"
+    Update  -> "update"
 
 data UpdateStatus
    = UpdateStatus {
@@ -225,11 +230,11 @@ updatePlugin update maybePlugins setting = do
   let specified p = rtpName p `elem` fromMaybe [] maybePlugins || maybePlugins == Just []
   let filterplugin p = isNothing maybePlugins || specified p
   let ps = filter filterplugin (plugins setting)
-  let count xs = if length xs > 1 then "s (" <> show (length xs) <> ")" else ""
+  let count xs = if length xs > 1 then "s (" <> display (length xs) <> ")" else ""
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- fmap mconcat <$> displayConsoleRegions $
     mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
-  putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> show update <> "."
+  putStrLn $ (if null (failed status) then "Success" else "Error occured") <> " in " <> display update <> "."
   unless (null (installed status)) do
     putStrLn $ "Installed plugin" <> count (installed status) <> ": "
     mapM_ (putStrLn . ("  "<>) . name) (sort (installed status))
@@ -361,7 +366,7 @@ vimScriptRepo pluginname | T.any (=='/') pluginname = unpack pluginname
 
 listPlugin :: Setting -> IO ()
 listPlugin setting = mapM_ putStrLn $ space $ map format $ plugins setting
-  where format p = [show p, name p, pack $ gitUrl (vimScriptRepo (name p))]
+  where format p = [display p, name p, pack $ gitUrl (vimScriptRepo (name p))]
         space xs =
           let max0 = maximum (map (T.length . (!!0)) xs) + 1
               max1 = maximum (map (T.length . (!!1)) xs) + 1
@@ -373,12 +378,12 @@ cleanDirectory setting = do
   dir <- pluginDirectory
   createDirectoryIfMissing True dir
   cnt <- listDirectory dir
-  let paths = "miv" : map (unpack . show) (plugins setting)
+  let paths = "miv" : map (unpack . display) (plugins setting)
       delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
   deldirs <- filterM doesDirectoryExist delpath'
-  files <- getDirectoryFiles (dir </> "miv") $ unpack . show . ($ "*") <$> [ Autoload, Ftplugin, Syntax ]
+  files <- getDirectoryFiles (dir </> "miv") $ unpack . display . ($ "*") <$> [ Autoload, Ftplugin, Syntax ]
   let delfiles = (delpath' \\ deldirs)
-        <> (((dir </> "miv") </>) <$> (files \\ [ unpack (show place) | (place, _) <- vimScriptToList (gatherScript setting) ]))
+        <> (((dir </> "miv") </>) <$> (files \\ [ unpack (display place) | (place, _) <- vimScriptToList (gatherScript setting) ]))
   let delpaths = deldirs <> delfiles
   if not (null delpaths)
      then do putStrLn "Remove:"
@@ -393,7 +398,7 @@ cleanDirectory setting = do
 
 saveScript :: (FilePath, Place, [Text]) -> IO ()
 saveScript (dir, place, code) = do
-  let relname = show place
+  let relname = display place
       path = dir </> unpack relname
       isAllAscii = all (T.all (<='~')) code
       body = "" : (if isAllAscii then [] else [ "scriptencoding utf-8", "" ])
@@ -409,7 +414,7 @@ saveScript (dir, place, code) = do
   when (contents /= Just body) $
     writeFile path $ unlines $
               [ "\" Filename: " <> relname
-              , "\" Last Change: " <> show time
+              , "\" Last Change: " <> pack (show time)
               , "\" Generated by " <> nameversion ] ++ body
 
 fileContents :: String -> IO (Maybe [Text])
@@ -487,7 +492,7 @@ pathPlugin :: [String] -> Setting -> IO ()
 pathPlugin plugins' setting = do
   let ps = filter (\p -> rtpName p `elem` plugins' || null plugins') (plugins setting)
   dir <- pluginDirectory
-  forM_ ps (\plugin -> putStrLn $ pack (dir </> unpack (show plugin)))
+  forM_ ps (\plugin -> putStrLn $ pack (dir </> unpack (display plugin)))
 
 mainProgram :: [String] -> IO ()
 mainProgram [] = printUsage

@@ -1,10 +1,9 @@
 module Cmdline where
 
 import Data.Text (Text, unpack)
+import Data.Text.Builder.Linear qualified as Builder
+import Data.Text.Display (Display(..))
 import Data.YAML
-import Prelude hiding (show)
-
-import ShowText
 
 data Cmdline = CmdlineExCommand
              | CmdlineForwardSearch
@@ -12,11 +11,12 @@ data Cmdline = CmdlineExCommand
              | CmdlineInput
              deriving (Eq, Ord)
 
-instance ShowText Cmdline where
-  show CmdlineExCommand      = ":"
-  show CmdlineForwardSearch  = "/"
-  show CmdlineBackwardSearch = "?"
-  show CmdlineInput          = "@"
+instance Display Cmdline where
+  displayBuilder = Builder.fromText . \case
+    CmdlineExCommand      -> ":"
+    CmdlineForwardSearch  -> "/"
+    CmdlineBackwardSearch -> "?"
+    CmdlineInput          -> "@"
 
 instance FromYAML Cmdline where
   parseYAML = withStr "!!str" \case

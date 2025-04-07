@@ -26,7 +26,6 @@ executable miv
                       , Command
                       , Cmdline
                       , Mapping
-                      , ShowText
                       , VimScript
                       , Git
                       , Paths_miv
@@ -41,6 +40,8 @@ executable miv
                       , HsYAML
                       , bytestring
                       , text
+                      , text-display
+                      , text-builder-linear
                       , unordered-containers
                       , monad-parallel
                       , filepath
