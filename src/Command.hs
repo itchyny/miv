@@ -66,8 +66,8 @@ instance ShowText CmdArg where
   show CmdOneArg = "-nargs=1"
   show CmdNoArg = "-nargs=0"
 
-data CmdComplete = CmdComplete Text
-                 deriving Eq
+newtype CmdComplete = CmdComplete Text
+                    deriving Eq
 
 instance ShowText CmdComplete where
   show (CmdComplete "") = ""

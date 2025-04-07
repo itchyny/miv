@@ -17,8 +17,8 @@ import qualified Plugin as P
 import qualified Setting as S
 import ShowText
 
-data VimScript = VimScript (M.Map Place [Text])
-               deriving (Eq)
+newtype VimScript = VimScript (M.Map Place [Text])
+                  deriving Eq
 
 data Place = Plugin
            | Autoload Text
@@ -114,7 +114,7 @@ gather' name f g plg
   where enabled p = P.enable p /= "0"
 
 collectSndByFst :: Ord a => [(a,b)] -> [(a,[b])]
-collectSndByFst xs = [ (fst (ys !! 0), map snd ys)
+collectSndByFst xs = [ (fst (head ys), map snd ys)
                        | ys <- groupBy ((==) `on` fst) $ sortBy (compare `on'` fst) xs ]
   where on' f g x y = g x `f` g y
 
@@ -125,7 +125,7 @@ pluginConfig plg
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " <> P.name plg) : str
-    mapleader = (\s -> if T.null s then [] else ["let g:mapleader = " <> singleQuote s]) (P.mapleader plg)
+    mapleader = let s = P.mapleader plg in ["let g:mapleader = " <> singleQuote s | not (T.null s)]
 
 loadScript :: P.Plugin -> [Text]
 loadScript plg
@@ -292,11 +292,11 @@ cmdlineEnterLoader setting
   where
     f :: Cmdline -> [P.Plugin] -> VimScript
     f cmdline plugins = VimScript (M.singleton Plugin
-      [ "\" CmdlineEnter " <> (show cmdline)
+      [ "\" CmdlineEnter " <> show cmdline
       , "if exists('#CmdlineEnter')"
       , "  augroup " <> group
       , "    autocmd!"
-      , "    autocmd CmdlineEnter " <> (cmdlinePattern cmdline) <> " call miv#cmdline_enter_" <> c <> "()"
+      , "    autocmd CmdlineEnter " <> cmdlinePattern cmdline <> " call miv#cmdline_enter_" <> c <> "()"
       , "  augroup END"
       , "else"
       , "  call miv#cmdline_enter_" <> c <> "()"

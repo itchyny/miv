@@ -51,24 +51,24 @@ getSettingFileCandidates :: IO [FilePath]
 getSettingFileCandidates = do
   xdgConfig <- getUserConfigFile "miv" "config.yaml"
   mapM expandHomeDirectory
-    ([ xdgConfig
-     , "~/.vimrc.yaml"
-     , "~/.vim/.vimrc.yaml"
-     , "~/vimrc.yaml"
-     , "~/.vim/vimrc.yaml"
-     , "~/_vimrc.yaml"
-     , "~/.vim/_vimrc.yaml"
-     , "~/_vim/_vimrc.yaml"
-     , "~/vimfiles/.vimrc.yaml"
-     , "~/vimfiles/vimrc.yaml"
-     , "~/vimfiles/_vimrc.yaml"
-     ])
+    [ xdgConfig
+    , "~/.vimrc.yaml"
+    , "~/.vim/.vimrc.yaml"
+    , "~/vimrc.yaml"
+    , "~/.vim/vimrc.yaml"
+    , "~/_vimrc.yaml"
+    , "~/.vim/_vimrc.yaml"
+    , "~/_vim/_vimrc.yaml"
+    , "~/vimfiles/.vimrc.yaml"
+    , "~/vimfiles/vimrc.yaml"
+    , "~/vimfiles/_vimrc.yaml"
+    ]
 
 getFirstExistingFile :: IO [FilePath] -> IO (Maybe FilePath)
 getFirstExistingFile fs = fmap listToMaybe $ filterM doesFileExist =<< fs
 
 getSettingFile :: IO (Maybe FilePath)
-getSettingFile = getFirstExistingFile $ getSettingFileCandidates
+getSettingFile = getFirstExistingFile getSettingFileCandidates
 
 getSetting :: IO Setting
 getSetting = do
@@ -105,8 +105,8 @@ printUsage = mapM_ putStrLn usage
 commandHelp :: IO ()
 commandHelp = mapM_ (putStrLn . show) arguments
 
-data Argument = Argument (Text, Text)
-              deriving (Eq, Ord)
+newtype Argument = Argument (Text, Text)
+                 deriving (Eq, Ord)
 instance ShowText Argument where
   show (Argument (x, y)) = x <> T.replicate (10 - T.length x) " " <> y
 
@@ -284,8 +284,8 @@ updateOnePlugin time dir update specified plugin = do
       repo = vimScriptRepo (name plugin)
       cloneCommand = if submodule plugin then cloneSubmodule else clone
       pullCommand = if submodule plugin then pullSubmodule else pull
-      putStrLn' = \region -> setConsoleRegion region . ((name plugin <> ": ") <>)
-      finish' = \region -> finishConsoleRegion region . ((name plugin <> ": ") <>)
+      putStrLn' region = setConsoleRegion region . ((name plugin <> ": ") <>)
+      finish' region = finishConsoleRegion region . ((name plugin <> ": ") <>)
   exists <- doesDirectoryExist path
   gitstatus <- gitStatus path
   if not exists || (gitstatus /= ExitSuccess && not (sync plugin))
@@ -325,7 +325,7 @@ updateOnePlugin time dir update specified plugin = do
                                    in setFileTimes path ctime ctime
           buildPlugin path region = do
             let command = build plugin
-            when (not (T.null command)) $
+            unless (T.null command) $
               void $ execCommand (unpack $ name plugin) region path (unpack command)
 
 singleQuote :: String -> String
@@ -350,7 +350,7 @@ execCommand pluginName region dir command = do
   where go h mvar lastLine = do
           e <- tryIOError $ hGetLine h
           case e of
-               Left err -> if isEOFError err then putMVar mvar lastLine else return ()
+               Left err -> when (isEOFError err) $ putMVar mvar lastLine
                Right line -> do
                  setConsoleRegion region (pluginName ++ ": " ++ line)
                  threadDelay 100000
@@ -377,7 +377,7 @@ cleanDirectory setting = do
   let paths = "miv" : map (unpack . show) (plugins setting)
       delpath' = [ dir </> d | d <- cnt, d `notElem` paths ]
   deldirs <- filterM doesDirectoryExist delpath'
-  files <- getDirectoryFiles (dir </> "miv") $ (unpack . show . ($ "*")) <$> [ Autoload, Ftplugin, Syntax ]
+  files <- getDirectoryFiles (dir </> "miv") $ unpack . show . ($ "*") <$> [ Autoload, Ftplugin, Syntax ]
   let delfiles = (delpath' \\ deldirs)
         <> (((dir </> "miv") </>) <$> (files \\ [ unpack (show place) | (place, _) <- vimScriptToList (gatherScript setting) ]))
   let delpaths = deldirs <> delfiles
@@ -389,7 +389,7 @@ cleanDirectory setting = do
              c <- getChar
              when (c == 'y' || c == 'Y') do
                mapM_ removeDirectoryRecursive deldirs
-               mapM_ removeFile $ delfiles
+               mapM_ removeFile delfiles
      else putStrLn "Clean."
 
 saveScript :: (FilePath, Place, [Text]) -> IO ()
@@ -431,7 +431,7 @@ generatePluginCode setting = do
   createDirectoryIfMissing True (dir </> "autoload" </> "miv")
   createDirectoryIfMissing True (dir </> "ftplugin")
   createDirectoryIfMissing True (dir </> "syntax")
-  when (any (not . null . dependedby) (plugins setting)) $
+  unless (all (null . dependedby) (plugins setting)) $
     hPutStrLn stderr "`dependedby` is deprecated in favor of `loadafter`"
   P.mapM_ (saveScript . (\(t, s) -> (dir, t, s)))
           (vimScriptToList (gatherScript setting))
@@ -450,7 +450,7 @@ gatherFtdetectScript setting = do
         copyFile (dir </> path </> "ftdetect" </> file) (dir </> "miv" </> "ftdetect" </> file)
   putStrLn "Success in gathering ftdetect scripts."
 
-data EachStatus = EachStatus { failed' :: [Plugin] }
+newtype EachStatus = EachStatus { failed' :: [Plugin] }
 
 instance Semigroup EachStatus where
   EachStatus f <> EachStatus f' = EachStatus (f <> f')
