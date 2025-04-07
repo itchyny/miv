@@ -1,6 +1,7 @@
 module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, ord, toLower)
+import Data.Default (def)
 import Data.Function (on)
 import Data.List (foldl', groupBy, sort, sortBy, nub)
 import Data.Map.Strict qualified as M
@@ -135,9 +136,9 @@ loadScript plugin
 gatherCommand :: Plugin -> [Text]
 gatherCommand plugin
   | not (null plugin.commands)
-    = [display (defaultCommand :: Command)
+    = [display (def :: Command)
           { name = c,
-            repText = unwords [
+            repl = unwords [
               "call miv#command(" <> singleQuote (display plugin) <> ",",
               singleQuote c <> ",",
               singleQuote "<bang>" <> ",",
@@ -150,9 +151,9 @@ gatherCommand plugin
 gatherMapping :: Plugin -> [Text]
 gatherMapping plugin
   | not (null plugin.mappings)
-    = [display defaultMapping
+    = [display (def :: Mapping)
           { name = mapping,
-            repText = escape mode <> ":<C-u>call miv#mapping("
+            repl = escape mode <> ":<C-u>call miv#mapping("
                 <> singleQuote (display plugin) <> ", "
                 <> singleQuote mapping <> ", "
                 <> singleQuote (display mode) <> ")<CR>",

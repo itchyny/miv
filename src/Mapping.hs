@@ -1,34 +1,19 @@
 module Mapping where
 
-import Data.Text (Text, unwords, null)
+import Data.Default (Default(..))
+import Data.Text (Text, null, unwords)
 import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
 import Prelude hiding (unwords, null)
 
 import Mode
 
-data MapUnique = MapUnique | MapNoUnique
-               deriving Eq
-
-instance Display MapUnique where
-  displayBuilder = Builder.fromText . \case
-    MapUnique   -> "<unique>"
-    MapNoUnique -> ""
-
-data MapSilent = MapSilent | MapNoSilent
-               deriving Eq
-
-instance Display MapSilent where
-  displayBuilder = Builder.fromText . \case
-    MapSilent   -> "<silent>"
-    MapNoSilent -> ""
-
 data Mapping =
   Mapping {
     name    :: Text,
-    repText :: Text,
-    unique  :: MapUnique,
-    silent  :: MapSilent,
+    repl    :: Text,
+    unique  :: Bool,
+    silent  :: Bool,
     mode    :: Mode
   } deriving Eq
 
@@ -36,18 +21,17 @@ instance Display Mapping where
   displayBuilder m =
     Builder.fromText $ unwords $ filter (not . null)
         [ display m.mode <> "noremap",
-          display m.unique <> display m.silent,
+          (if m.unique then "<unique>" else "")
+       <> (if m.silent then "<silent>" else ""),
           m.name,
-          m.repText
+          m.repl
         ]
 
-defaultMapping :: Mapping
-defaultMapping =
-  Mapping {
+instance Default Mapping where
+  def = Mapping {
     name    = "",
-    repText = "",
-    unique  = MapUnique,
-    silent  = MapSilent,
+    repl    = "",
+    unique  = True,
+    silent  = True,
     mode    = NormalMode
   }
-

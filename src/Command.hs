@@ -1,52 +1,55 @@
 module Command where
 
-import Data.Text (Text, unwords)
-import Data.Text qualified as T
+import Data.Default (Default(..))
+import Data.Text (Text, null, unwords)
 import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
-import Prelude hiding (unwords)
+import Prelude hiding (unwords, null)
 
-data CmdBang = CmdBang
-             | CmdNoBang
-             deriving Eq
+data Command =
+  Command {
+    name     :: Text,
+    repl     :: Text,
+    bang     :: Bool,
+    bar      :: Bool,
+    register :: Bool,
+    buffer   :: Bool,
+    range    :: Maybe CmdRange,
+    arg      :: CmdArg,
+    complete :: Maybe CmdComplete
+  } deriving Eq
 
-instance Display CmdBang where
-  displayBuilder = Builder.fromText . \case
-    CmdBang   -> "-bang"
-    CmdNoBang -> ""
+instance Display Command where
+  displayBuilder cmd =
+    Builder.fromText $ unwords $ filter (not . null)
+        [ "command!",
+          if cmd.bang then "-bang" else "",
+          if cmd.bar then "-bar" else "",
+          if cmd.register then "-register" else "",
+          if cmd.buffer then "-buffer" else "",
+          maybe "" display cmd.range,
+          display cmd.arg,
+          maybe "" display cmd.complete,
+          cmd.name,
+          cmd.repl ]
 
-data CmdBar = CmdBar
-            | CmdNoBar
-            deriving Eq
-
-instance Display CmdBar where
-  displayBuilder = Builder.fromText . \case
-    CmdBar   -> "-bar"
-    CmdNoBar -> ""
-
-data CmdRegister = CmdRegister
-                 | CmdNoRegister
-                 deriving Eq
-
-instance Display CmdRegister where
-  displayBuilder = Builder.fromText . \case
-    CmdRegister   -> "-register"
-    CmdNoRegister -> ""
-
-data CmdBuffer = CmdBuffer
-               | CmdNoBuffer
-               deriving Eq
-
-instance Display CmdBuffer where
-  displayBuilder = Builder.fromText . \case
-    CmdBuffer   -> "-buffer"
-    CmdNoBuffer -> ""
+instance Default Command where
+  def = Command {
+    name     = "",
+    repl     = "",
+    bang     = True,
+    bar      = False,
+    register = False,
+    buffer   = False,
+    range    = Just CmdRange,
+    arg      = CmdNonNegArg,
+    complete = Nothing
+  }
 
 data CmdRange = CmdRange
               | CmdRangeWhole
               | CmdRangeN Int
               | CmdRangeCount Int
-              | CmdNoRange
               deriving Eq
 
 instance Display CmdRange where
@@ -55,7 +58,6 @@ instance Display CmdRange where
     CmdRangeWhole   -> "-range=%"
     CmdRangeN n     -> "-range=" <> display n
     CmdRangeCount n -> "-count=" <> display n
-    CmdNoRange      -> ""
 
 data CmdArg = CmdNonNegArg
             | CmdZeroOneArg
@@ -76,49 +78,5 @@ newtype CmdComplete = CmdComplete Text
                     deriving Eq
 
 instance Display CmdComplete where
-  displayBuilder = Builder.fromText . \case
-    CmdComplete "" -> ""
-    CmdComplete complete -> "-complete=" <> complete
-
-data Command =
-  Command {
-    name     :: Text,
-    repText  :: Text,
-    bang     :: CmdBang,
-    bar      :: CmdBar,
-    register :: CmdRegister,
-    buffer   :: CmdBuffer,
-    range    :: CmdRange,
-    arg      :: CmdArg,
-    complete :: CmdComplete
-  } deriving Eq
-
-instance Display Command where
-  displayBuilder cmd =
-    Builder.fromText $ unwords $
-      filter (not . T.null)
-        [ "command!",
-          display cmd.bang,
-          display cmd.bar,
-          display cmd.register,
-          display cmd.buffer,
-          display cmd.range,
-          display cmd.arg,
-          display cmd.complete,
-          cmd.name,
-          cmd.repText ]
-
-defaultCommand :: Command
-defaultCommand =
-  Command {
-    name     = "",
-    repText  = "",
-    bang     = CmdBang,
-    bar      = CmdNoBar,
-    register = CmdNoRegister,
-    buffer   = CmdNoBuffer,
-    range    = CmdRange,
-    arg      = CmdNonNegArg,
-    complete = CmdComplete ""
-  }
-
+  displayBuilder (CmdComplete complete) =
+    Builder.fromText $ "-complete=" <> complete

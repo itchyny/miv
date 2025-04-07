@@ -33,6 +33,7 @@ executable miv
                       , Git
                       , Paths_miv
   build-depends:        base
+                      , data-default
                       , process
                       , async
                       , concurrent-output
