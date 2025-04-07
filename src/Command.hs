@@ -1,8 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Command where
 
-import qualified Data.Text as T
 import Data.Text (Text, unwords)
+import Data.Text qualified as T
 import Prelude hiding (show, unwords)
 import ShowText
 

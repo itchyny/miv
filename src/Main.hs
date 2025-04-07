@@ -1,23 +1,22 @@
-{-# LANGUAGE BlockArguments, OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
 import Control.Applicative
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
-import qualified Control.Concurrent.MSem as MSem
+import Control.Concurrent.MSem qualified as MSem
 import Control.Exception
 import Control.Monad (filterM, forM_, unless, void, when, guard)
-import qualified Control.Monad.Parallel as P
-import qualified Data.ByteString.Lazy as BS
+import Control.Monad.Parallel qualified as P
+import Data.ByteString.Lazy qualified as BS
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, (\\))
 import Data.Maybe (listToMaybe, fromMaybe, isNothing)
 import Data.Text (Text, unlines, pack, unpack)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
 import Data.Time (getZonedTime)
 import Data.Version (showVersion)
-import qualified Data.YAML as YAML
+import Data.YAML qualified as YAML
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr, show)
 import System.Console.Concurrent ()

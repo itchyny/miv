@@ -1,4 +1,3 @@
-{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 module Cmdline where
 
 import Data.Text (Text, unpack)

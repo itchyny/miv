@@ -1,9 +1,8 @@
-{-# LANGUAGE BlockArguments, OverloadedStrings, RecordWildCards #-}
 module Setting where
 
 import Data.Function (on)
 import Data.List (sortBy)
-import qualified Data.Map.Strict as M
+import Data.Map.Strict qualified as M
 import Data.Text (Text, lines)
 import Data.YAML
 import Prelude hiding (lines)

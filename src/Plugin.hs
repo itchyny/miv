@@ -1,9 +1,8 @@
-{-# LANGUAGE BlockArguments, OverloadedStrings, RecordWildCards #-}
 module Plugin where
 
 import Control.Applicative ((<|>))
-import qualified Data.Text as T
 import Data.Text (Text, unpack)
+import Data.Text qualified as T
 import Data.YAML
 
 import Cmdline

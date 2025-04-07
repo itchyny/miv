@@ -1,4 +1,3 @@
-{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 module Mode where
 
 import Data.Text (unpack)

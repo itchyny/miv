@@ -1,20 +1,20 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings #-}
 module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, ord, toLower)
 import Data.Function (on)
 import Data.List (foldl', groupBy, sort, sortBy, nub)
-import qualified Data.Map.Strict as M
+import Data.Map.Strict qualified as M
 import Data.Text (Text, singleton, unpack, unwords)
-import qualified Data.Text as T
+import Data.Text qualified as T
 import Prelude hiding (show, unwords)
+import Prelude qualified
 
 import Cmdline
-import qualified Command as C
-import qualified Mapping as M
+import Command qualified as C
+import Mapping qualified as M
 import Mode
-import qualified Plugin as P
-import qualified Setting as S
+import Plugin qualified as P
+import Setting qualified as S
 import ShowText
 
 newtype VimScript = VimScript (M.Map Place [Text])

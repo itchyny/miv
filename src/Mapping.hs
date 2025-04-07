@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Mapping where
 
 import Data.Text (Text, unwords, null)

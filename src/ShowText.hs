@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, IncoherentInstances, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
 module ShowText where
 
 import Data.Text
