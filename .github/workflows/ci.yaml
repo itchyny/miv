@@ -3,20 +3,81 @@ name: CI
 on:
   push:
     branches:
-    - main
+      - main
+    tags:
+      - v*
   pull_request:
 
-jobs:
+permissions:
+  contents: read
 
-  test:
-    name: Test
+defaults:
+  run:
+    shell: bash --noprofile --norc -euxo pipefail {0}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        os: [linux, darwin, windows]
+        include:
+          - os: linux
+            arch: amd64
+            runs-on: ubuntu-latest
+          - os: darwin
+            arch: arm64
+            runs-on: macos-latest
+          - os: windows
+            arch: amd64
+            runs-on: windows-latest
+      fail-fast: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          enable-stack: true
+      - name: Build
+        run: stack build
+      - name: Test
+        run: stack test
+      - name: Set executable name
+        id: executable
+        run: echo name=${{ github.event.repository.name }} >> "$GITHUB_OUTPUT"
+      - name: Set artifact name
+        id: artifact
+        run: echo name=${{ steps.executable.outputs.name }}_${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name ||
+               github.event.pull_request.head.sha || github.sha }}_${{ matrix.os }}_${{ matrix.arch }} >> "$GITHUB_OUTPUT"
+      - name: Build artifact
+        run: |
+          mkdir ${{ steps.artifact.outputs.name }}
+          cp README.md LICENSE _miv "$(stack path --local-install-root)/bin/${{ steps.executable.outputs.name }}" ${{ steps.artifact.outputs.name }}
+          if [[ ${{ matrix.os }} == windows ]]; then
+            powershell Compress-Archive -Path ${{ steps.artifact.outputs.name }} -DestinationPath ${{ steps.artifact.outputs.name }}.zip
+          else
+            zip -r ${{ steps.artifact.outputs.name }}.zip ${{ steps.artifact.outputs.name }}
+          fi
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.name }}.zip
+
+  release:
+    name: Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Build
-      run: stack build
-    - name: Install
-      run: stack install
-    - name: Test
-      run: stack test
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          artifacts: '*/*.zip'
