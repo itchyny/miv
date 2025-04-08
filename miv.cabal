@@ -34,6 +34,7 @@ executable miv
                       , Paths_miv
   build-depends:        base
                       , data-default
+                      , extra
                       , process
                       , async
                       , concurrent-output
@@ -42,6 +43,7 @@ executable miv
                       , directory
                       , containers
                       , HsYAML
+                      , MissingH
                       , bytestring
                       , text
                       , text-display

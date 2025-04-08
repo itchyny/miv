@@ -1,9 +1,9 @@
 module VimScript where
 
-import Data.Char (isAlpha, isAlphaNum, ord, toLower)
+import Data.Char (isAlpha, isAlphaNum, isSpace, ord, toLower)
 import Data.Default (def)
-import Data.Function (on)
-import Data.List (foldl', groupBy, sort, sortBy, nub)
+import Data.List (foldl', sort, nub)
+import Data.List.Extra (groupSort)
 import Data.Map.Strict qualified as M
 import Data.Text (Text, singleton, unpack, unwords)
 import Data.Text qualified as T
@@ -108,19 +108,14 @@ gather' name f g plugin
       [ "let s:" <> name <> " = {" ]
    <> [ "      \\ " <> singleQuote p
                     <> ": [ " <> T.intercalate ", " (map singleQuote $ sort $ nub q)  <> " ],"
-        | (p, q) <- collectSndByFst $ [ (display p, q) | p <- plugin, p.enable /= "0", q <- f p ]
-                                   <> [ (q, display p) | p <- plugin, p.enable /= "0", q <- g p ] ]
+        | (p, q) <- groupSort $ [ (display p, q) | p <- plugin, p.enable /= "0", q <- f p ]
+                             <> [ (q, display p) | p <- plugin, p.enable /= "0", q <- g p ] ]
    <> [ "      \\ }" ])
-
-collectSndByFst :: Ord a => [(a,b)] -> [(a,[b])]
-collectSndByFst xs = [ (fst (head ys), map snd ys)
-                       | ys <- groupBy ((==) `on` fst) $ sortBy (compare `on'` fst) xs ]
-  where on' f g x y = g x `f` g y
 
 pluginConfig :: Plugin -> VimScript
 pluginConfig plugin
-    = VimScript (M.singleton Plugin' $ wrapInfo $
-        wrapEnable plugin.enable $ mapleader <> gatherCommand plugin <> gatherMapping plugin <> plugin.script <> loadScript plugin)
+  = VimScript (M.singleton Plugin' $ wrapInfo $
+      wrapEnable plugin.enable $ mapleader <> gatherCommand plugin <> gatherMapping plugin <> plugin.script <> loadScript plugin)
   where
     wrapInfo [] = []
     wrapInfo str = ("\" " <> plugin.name) : str
@@ -170,9 +165,8 @@ afterScript :: Setting -> VimScript
 afterScript setting = VimScript (M.singleton Plugin' setting.after)
 
 filetypeLoader :: Setting -> VimScript
-filetypeLoader setting
-  = mconcat $ map (uncurry f) $
-      collectSndByFst [(ft, p) | p <- setting.plugins, ft <- p.filetypes]
+filetypeLoader setting =
+  mconcat $ map (uncurry f) $ groupSort [(ft, p) | p <- setting.plugins, ft <- p.filetypes]
   where
     f :: Text -> [Plugin] -> VimScript
     f ft plugins = flip foldMap (getHeadChar ft) $
@@ -193,20 +187,20 @@ filetypeLoader setting
                      , "endfunction" ])
 
 wrapEnable :: Text -> [Text] -> [Text]
-wrapEnable enable str
-  | null str = []
-  | T.null enable = str
-  | enable == "0" = []
-  | otherwise = (indent <> "if " <> enable)
-                           : map ("  "<>) str
-             <> [indent <> "endif"]
-  where indent = T.takeWhile (==' ') (head str)
+wrapEnable _ [] = []
+wrapEnable "" strs = strs
+wrapEnable "0" _ = []
+wrapEnable enable strs@(s:_) =
+  [indent <> "if " <> enable] <>
+        map ("  "<>) strs <>
+  [indent <> "endif"]
+  where indent = T.takeWhile isSpace s
 
 loadPlugins :: [Plugin] -> [Text]
 loadPlugins plugins = concat
   [wrapEnable enable
     ["  call miv#load(" <> singleQuote (display p) <> ")" | p <- plugins']
-      | (enable, plugins') <- collectSndByFst [(p.enable, p) | p <- plugins]]
+      | (enable, plugins') <- groupSort [(p.enable, p) | p <- plugins]]
 
 singleQuote :: Text -> Text
 singleQuote str = "'" <> str <> "'"
@@ -285,9 +279,8 @@ funcUndefinedLoader setting = if null functions then mempty else
   where functions = [f | p <- setting.plugins, f <- p.functions]
 
 cmdlineEnterLoader :: Setting -> VimScript
-cmdlineEnterLoader setting
-  = mconcat $ map (uncurry f) $
-      collectSndByFst [(cmdline, p) | p <- setting.plugins, cmdline <- p.cmdlines]
+cmdlineEnterLoader setting =
+  mconcat $ map (uncurry f) $ groupSort [(cmdline, p) | p <- setting.plugins, cmdline <- p.cmdlines]
   where
     f :: Cmdline -> [Plugin] -> VimScript
     f cmdline plugins = VimScript (M.singleton Plugin'

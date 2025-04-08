@@ -1,10 +1,10 @@
 module Main where
 
-import Control.Applicative
+import Control.Applicative ((<|>))
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Concurrent.MSem qualified as MSem
-import Control.Exception
+import Control.Exception (tryJust)
 import Control.Monad (filterM, forM_, unless, void, when, guard)
 import Control.Monad.Parallel qualified as P
 import Data.ByteString.Lazy qualified as BS
@@ -17,11 +17,11 @@ import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
 import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
 import Data.Time (getZonedTime)
+import Data.Tuple.Utils (fst3, snd3)
 import Data.Version (showVersion)
 import Data.YAML qualified as YAML
 import GHC.Conc (getNumProcessors, setNumCapabilities)
 import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr)
-import System.Console.Concurrent ()
 import System.Console.Regions
 import System.Directory
 import System.Environment (getArgs)
@@ -366,11 +366,11 @@ vimScriptRepo pluginname | T.any (=='/') pluginname = unpack pluginname
 
 listPlugin :: Setting -> IO ()
 listPlugin setting = mapM_ putStrLn $ space $ map format $ setting.plugins
-  where format (p :: Plugin) = [display p, p.name, pack $ gitUrl (vimScriptRepo p.name)]
+  where format (p :: Plugin) = (display p, p.name, pack $ gitUrl (vimScriptRepo p.name))
         space xs =
-          let max0 = maximum (map (T.length . (!!0)) xs) + 1
-              max1 = maximum (map (T.length . (!!1)) xs) + 1
-              in map (\(as:bs:cs:_) -> as <> T.replicate (max0 - T.length as) " " <> bs <> T.replicate (max1 - T.length bs) " " <> cs) xs
+          let max0 = maximum (map (T.length . fst3) xs) + 1
+              max1 = maximum (map (T.length . snd3) xs) + 1
+              in map (\(a, b, c) -> a <> T.replicate (max0 - T.length a) " " <> b <> T.replicate (max1 - T.length b) " " <> c) xs
 
 cleanDirectory :: Setting -> IO ()
 cleanDirectory setting = do
