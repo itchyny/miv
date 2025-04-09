@@ -234,7 +234,7 @@ updatePlugin update maybePlugins setting = do
   time <- maximum <$> mapM' (lastUpdatePlugin dir) ps
   status <- fmap mconcat <$> displayConsoleRegions $
     mapM' (\p -> updateOnePlugin time dir update (specified p) p) ps
-  putStrLn $ (if null status.failed then "Success" else "Error occured") <> " in " <> display update <> "."
+  putStrLn $ (if null status.failed then "Success" else "Error occurred") <> " in " <> display update <> "."
   unless (null status.installed) do
     putStrLn $ "Installed plugin" <> count status.installed <> ": "
     mapM_ (\p -> putStrLn ("  " <> p.name)) (sort status.installed)
