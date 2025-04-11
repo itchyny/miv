@@ -1,7 +1,6 @@
 module Setting where
 
-import Data.Function (on)
-import Data.List (sortBy)
+import Data.List (sortOn)
 import Data.Map.Strict qualified as M
 import Data.Text (Text, lines)
 import Data.YAML
@@ -26,7 +25,5 @@ instance FromYAML Setting where
     before <- lines <$> o .:? "before" .!= ""
     after <- lines <$> o .:? "after" .!= ""
     return Setting {..}
-      where pluginMapToList = sortWith (.name) . M.foldlWithKey' (\a k v -> v { name = k } : a) []
-
-sortWith :: Ord b => (a -> b) -> [a] -> [a]
-sortWith = sortBy . on compare
+      where pluginMapToList = sortOn (.name) .
+              M.foldlWithKey' (\a k v -> v { name = k } : a) []
