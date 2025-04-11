@@ -2,7 +2,7 @@ module VimScript where
 
 import Data.Char (isAlpha, isAlphaNum, isSpace, ord, toLower)
 import Data.Default (def)
-import Data.List (foldl', sort, nub)
+import Data.List (foldl', nub, sort)
 import Data.List.Extra (groupSort)
 import Data.Map.Strict qualified as M
 import Data.Text (Text, singleton, unpack, unwords)
@@ -46,7 +46,7 @@ instance Semigroup VimScript where
     where
       concat' a [] = a
       concat' [] b = b
-      concat' a b = a <> [""] <> b
+      concat' a b  = a <> [""] <> b
 
 instance Monoid VimScript where
   mempty = VimScript M.empty
@@ -117,7 +117,7 @@ pluginConfig plugin
   = VimScript (M.singleton Plugin' $ wrapInfo $
       wrapEnable plugin.enable $ mapleader <> gatherCommand plugin <> gatherMapping plugin <> plugin.script <> loadScript plugin)
   where
-    wrapInfo [] = []
+    wrapInfo []  = []
     wrapInfo str = ("\" " <> plugin.name) : str
     mapleader = let s = plugin.mapleader in ["let g:mapleader = " <> singleQuote s | not (T.null s)]
 

@@ -1,26 +1,25 @@
 module Main where
 
-import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
+import Control.Concurrent (forkIO, newEmptyMVar, putMVar, takeMVar, threadDelay)
 import Control.Concurrent.Async
 import Control.Concurrent.MSem qualified as MSem
 import Control.Exception (tryJust)
-import Control.Monad (filterM, forM_, unless, void, when, guard)
+import Control.Monad (filterM, forM_, guard, unless, void, when)
 import Control.Monad.Parallel qualified as P
 import Data.ByteString.Lazy qualified as BS
 import Data.Functor ((<&>))
 import Data.List (foldl', isPrefixOf, nub, sort, (\\))
-import Data.Maybe (listToMaybe, fromMaybe, isNothing)
-import Data.Text (Text, unlines, pack, unpack)
+import Data.Maybe (fromMaybe, isNothing, listToMaybe)
+import Data.Text (Text, pack, unlines, unpack)
 import Data.Text qualified as T
 import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
-import Data.Text.IO (putStrLn, putStr, writeFile, hGetContents)
+import Data.Text.IO (hGetContents, putStr, putStrLn, writeFile)
 import Data.Time (getZonedTime)
 import Data.Tuple.Utils (fst3, snd3)
 import Data.Version (showVersion)
 import Data.YAML qualified as YAML
 import GHC.Conc (getNumProcessors, setNumCapabilities)
-import Prelude hiding (readFile, writeFile, unlines, putStrLn, putStr)
 import System.Console.Regions
 import System.Directory
 import System.Environment (getArgs)
@@ -28,10 +27,12 @@ import System.Environment.XDG.BaseDir (getUserConfigFile, getUserDataDir)
 import System.Exit (ExitCode(..))
 import System.FilePath ((</>))
 import System.FilePattern.Directory (getDirectoryFiles)
-import System.IO (openFile, IOMode(..), hClose, hFlush, stdout, stderr, hGetLine, hPutStrLn)
-import System.IO.Error (isDoesNotExistError, tryIOError, isEOFError)
+import System.IO (IOMode(..), hClose, hFlush, hGetLine, hPutStrLn, openFile,
+                  stderr, stdout)
+import System.IO.Error (isDoesNotExistError, isEOFError, tryIOError)
 import System.PosixCompat.Files (setFileTimes)
 import System.Process
+import Prelude hiding (putStr, putStrLn, readFile, unlines, writeFile)
 
 import Git
 import Paths_miv (version)
@@ -44,7 +45,7 @@ nameversion = "miv " <> pack (showVersion version)
 
 expandHomeDirectory :: FilePath -> IO FilePath
 expandHomeDirectory ('~':'/':path) = getHomeDirectory <&> (</> path)
-expandHomeDirectory path = return path
+expandHomeDirectory path           = return path
 
 getSettingFileCandidates :: IO [FilePath]
 getSettingFileCandidates = do
@@ -76,7 +77,7 @@ getSetting = do
     Just file -> do
       cnt <- BS.readFile file
       case YAML.decode1 cnt of
-           Right setting -> return setting
+           Right setting   -> return setting
            Left (pos, err) -> error $ YAML.prettyPosWithSource pos cnt err
     Nothing -> error $ unpack $ unlines $
       "No setting file! Tried following locations:" :
@@ -164,7 +165,7 @@ usage = [ nameversion
 levenshtein :: Eq a => [a] -> [a] -> Int
 levenshtein a b = last $ foldl' f [0..length a] b
   where
-    f [] _ = []
+    f [] _         = []
     f xs@(x:xs') c = scanl (g c) (x + 1) (zip3 a xs xs')
     g c z (d, x, y) = minimum [y + 1, z + 1, x + fromEnum (c /= d)]
 
@@ -203,10 +204,10 @@ instance Display Update where
 data UpdateStatus =
   UpdateStatus {
     installed :: [Plugin],
-    updated :: [Plugin],
-    nosync :: [Plugin],
-    outdated :: [Plugin],
-    failed :: [Plugin]
+    updated   :: [Plugin],
+    nosync    :: [Plugin],
+    outdated  :: [Plugin],
+    failed    :: [Plugin]
   }
 
 instance Semigroup UpdateStatus where

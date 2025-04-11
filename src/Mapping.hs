@@ -4,17 +4,17 @@ import Data.Default (Default(..))
 import Data.Text (Text, null, unwords)
 import Data.Text.Builder.Linear qualified as Builder
 import Data.Text.Display (Display(..), display)
-import Prelude hiding (unwords, null)
+import Prelude hiding (null, unwords)
 
 import Mode
 
 data Mapping =
   Mapping {
-    name    :: Text,
-    repl    :: Text,
-    unique  :: Bool,
-    silent  :: Bool,
-    mode    :: Mode
+    name   :: Text,
+    repl   :: Text,
+    unique :: Bool,
+    silent :: Bool,
+    mode   :: Mode
   } deriving Eq
 
 instance Display Mapping where
