@@ -11,7 +11,7 @@ module Git
 
 import Data.List (isPrefixOf)
 import System.Exit (ExitCode(..))
-import System.Process (system, readProcess)
+import System.Process (readProcess, system)
 
 clone :: String -> FilePath -> String
 clone repo path = unwords ["git", "clone", gitUrl repo, singleQuote path]
