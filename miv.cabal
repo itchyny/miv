@@ -1,3 +1,4 @@
+cabal-version:          3.0
 name:                   miv
 version:                0.4.8
 author:                 itchyny <https://github.com/itchyny>
@@ -6,7 +7,6 @@ license:                MIT
 license-file:           LICENSE
 category:               Compiler
 build-type:             Simple
-cabal-version:          >=1.10
 synopsis:               Vim plugin manager written in Haskell
 description:            The miv command is a cli tool to manage Vim plugins.
 
