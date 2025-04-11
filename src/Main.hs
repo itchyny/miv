@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Applicative ((<|>))
 import Control.Concurrent (threadDelay, newEmptyMVar, forkIO, putMVar, takeMVar)
 import Control.Concurrent.Async
 import Control.Concurrent.MSem qualified as MSem
@@ -85,14 +84,13 @@ getSetting = do
 
 pluginDirectory :: IO FilePath
 pluginDirectory = do
-  defaultDir <- expandHomeDirectory "~/.vim/miv"
-  xdgDir <- getUserDataDir "miv"
-  x <- return xdgDir <||> doesDirectoryExist
-  y <- return defaultDir <||> doesDirectoryExist
-  z <- expandHomeDirectory "~/vimfiles/miv" <||> doesDirectoryExist
-  return $ fromMaybe defaultDir $ x <|> y <|> z
-    where (<||>) :: IO a -> (a -> IO Bool) -> IO (Maybe a)
-          (<||>) f g = f >>= \x -> g x >>= \b -> return if b then Just x else Nothing
+  candidates <- sequence [
+    getUserDataDir "miv",
+    expandHomeDirectory "~/.vim/miv",
+    expandHomeDirectory "~/vimfiles/miv" ]
+  filterM doesDirectoryExist candidates >>= \case
+    (path:_) -> return path
+    [] -> expandHomeDirectory "~/.vim/miv"
 
 createPluginDirectory :: IO ()
 createPluginDirectory =
