@@ -131,8 +131,8 @@ loadScript plugin
 gatherCommand :: Plugin -> [Text]
 gatherCommand plugin
   | not (null plugin.commands)
-    = [display (def :: Command)
-          { name = c,
+    = [display def
+          { Command.name = c,
             repl = unwords [
               "call miv#command(" <> singleQuote (display plugin) <> ",",
               singleQuote c <> ",",
@@ -146,8 +146,8 @@ gatherCommand plugin
 gatherMapping :: Plugin -> [Text]
 gatherMapping plugin
   | not (null plugin.mappings)
-    = [display (def :: Mapping)
-          { name = mapping,
+    = [display def
+          { Mapping.name = mapping,
             repl = escape mode <> ":<C-u>call miv#mapping("
                 <> singleQuote (display plugin) <> ", "
                 <> singleQuote mapping <> ", "
