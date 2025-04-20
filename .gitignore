@@ -1,6 +1,6 @@
-*.swp
 *.o
 *.hi
-*.lock
-.stack-work/
-dist/
+*.tar.gz
+/.stack-work
+/dist
+/dist-newstyle
