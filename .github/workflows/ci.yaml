@@ -44,6 +44,12 @@ jobs:
         run: stack build
       - name: Test
         run: stack test
+      - name: Dist
+        id: dist
+        if: matrix.os == 'linux'
+        run: |
+          stack sdist --test-tarball
+          echo path=$(ls "$(stack path --dist-dir)"/*.tar.gz) >> "$GITHUB_OUTPUT"
       - name: Set executable name
         id: executable
         run: echo name=${{ github.event.repository.name }} >> "$GITHUB_OUTPUT"
@@ -65,6 +71,12 @@ jobs:
         with:
           name: ${{ steps.artifact.outputs.name }}
           path: ${{ steps.artifact.outputs.name }}.zip
+      - name: Upload dist
+        if: matrix.os == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: ${{ steps.dist.outputs.path }}
 
   release:
     name: Release
