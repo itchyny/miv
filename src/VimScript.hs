@@ -133,7 +133,7 @@ gatherCommand plugin
   | not (null plugin.commands)
     = [display def
           { Command.name = c,
-            repl = unwords [
+            Command.repl = unwords [
               "call miv#command(" <> singleQuote (display plugin) <> ",",
               singleQuote c <> ",",
               singleQuote "<bang>" <> ",",
@@ -148,11 +148,11 @@ gatherMapping plugin
   | not (null plugin.mappings)
     = [display def
           { Mapping.name = mapping,
-            repl = escape mode <> ":<C-u>call miv#mapping("
+            Mapping.repl = escape mode <> ":<C-u>call miv#mapping("
                 <> singleQuote (display plugin) <> ", "
                 <> singleQuote mapping <> ", "
                 <> singleQuote (display mode) <> ")<CR>",
-            mode = mode
+            Mapping.mode = mode
           } | mapping <- plugin.mappings, mode <- modes]
   | otherwise = []
     where modes = if null plugin.mapmodes then [NormalMode] else plugin.mapmodes
