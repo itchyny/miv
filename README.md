@@ -1,5 +1,5 @@
 # miv
-[![CI Status](https://github.com/itchyny/miv/workflows/CI/badge.svg)](https://github.com/itchyny/miv/actions)
+[![CI Status](https://github.com/itchyny/miv/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/itchyny/miv/actions?query=branch:main)
 [![Hackage](https://img.shields.io/hackage/v/miv.svg)](https://hackage.haskell.org/package/miv)
 [![Release](https://img.shields.io/github/release/itchyny/miv/all.svg)](https://github.com/itchyny/miv/releases)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/itchyny/miv/blob/main/LICENSE)
@@ -28,7 +28,7 @@ brew install itchyny/tap/miv
 
 ### Build with stack
 ```sh
-git clone https://github.com/itchyny/miv.git && cd miv && stack install
+stack install miv
 ```
 
 ## User guide
@@ -247,7 +247,7 @@ Commands to execute when you want to
 |`sync`|`boolean`|skip pulling the repository if the value is `false`|
 
 ## Author
-itchyny (https://github.com/itchyny)
+itchyny (<https://github.com/itchyny>)
 
 ## License
 This software is released under the MIT License, see LICENSE.
