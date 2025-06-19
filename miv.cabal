@@ -1,6 +1,6 @@
 cabal-version:          3.0
 name:                   miv
-version:                0.4.8
+version:                0.4.9
 category:               Compiler
 synopsis:               Vim plugin manager written in Haskell
 description:            The miv command is a cli tool to manage Vim plugins.
