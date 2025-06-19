@@ -23,7 +23,7 @@ bump:
 		echo "Current branch is not main: $$(git branch --show-current)"; \
 		exit 1; \
 	}
-	@[ "$$(git status --porcelain)" = "M $$(ls *.cabal)" ] || { \
+	@[ "$$(git status --porcelain)" = " M $$(ls *.cabal)" ] || { \
 		echo "Version is not updated, or unrelated files are updated:"; \
 		git status --porcelain -z | xargs -0 -r printf "  %s\n" ; \
 		exit 1; \
