@@ -1,78 +1,72 @@
+cabal-version:          3.0
 name:                   miv
 version:                0.4.8
-author:                 itchyny <https://github.com/itchyny>
-maintainer:             itchyny <https://github.com/itchyny>
-license:                MIT
-license-file:           LICENSE
 category:               Compiler
-build-type:             Simple
-cabal-version:          >=1.10
 synopsis:               Vim plugin manager written in Haskell
 description:            The miv command is a cli tool to manage Vim plugins.
+author:                 itchyny <itchyny@cybozu.co.jp>
+maintainer:             itchyny <itchyny@cybozu.co.jp>
+homepage:               https://github.com/itchyny/miv
+bug-reports:            https://github.com/itchyny/miv/issues
+license:                MIT
+license-file:           LICENSE
+extra-source-files:     README.md _miv
+
+common base
+  default-language:     GHC2021
+  default-extensions:   BlockArguments
+                        LambdaCase
+                        NoFieldSelectors
+                        OverloadedRecordDot
+  build-depends:        base >= 4.18 && < 5
+  ghc-options:          -Wdefault -Wall -Wunused-packages
 
 executable miv
+  import:               base
+  default-extensions:   OverloadedStrings
+                        RecordWildCards
+  ghc-options:          -threaded
   hs-source-dirs:       src
   main-is:              Main.hs
-  ghc-options:          -threaded -Wall
-  default-language:     Haskell2010
-  default-extensions:   BlockArguments
-                      , ImportQualifiedPost
-                      , LambdaCase
-                      , NoFieldSelectors
-                      , OverloadedRecordDot
-                      , OverloadedStrings
-                      , RecordWildCards
-                      , ScopedTypeVariables
   other-modules:        Plugin
-                      , Setting
-                      , Mode
-                      , Command
-                      , Cmdline
-                      , Mapping
-                      , VimScript
-                      , Git
-                      , Paths_miv
-  build-depends:        base
-                      , data-default
-                      , extra
-                      , process
-                      , async
-                      , concurrent-output
-                      , SafeSemaphore
-                      , time
-                      , directory
-                      , containers
-                      , HsYAML
-                      , MissingH
-                      , bytestring
-                      , text
-                      , text-display
-                      , text-builder-linear
-                      , unordered-containers
-                      , monad-parallel
-                      , filepath
-                      , filepattern
-                      , unix-compat
-                      , xdg-basedir
+                        Setting
+                        Mode
+                        Command
+                        Cmdline
+                        Mapping
+                        VimScript
+                        Git
+                        Paths_miv
+  autogen-modules:      Paths_miv
+  build-depends:        HsYAML >= 0.2 && < 0.3
+                      , MissingH >= 1.6 && < 1.7
+                      , SafeSemaphore >= 0.10 && < 0.11
+                      , async >= 2.2 && < 2.3
+                      , bytestring >= 0.11 && < 0.13
+                      , concurrent-output >= 1.10 && < 1.11
+                      , containers >= 0.6 && < 0.8
+                      , data-default >= 0.7 && < 0.9
+                      , directory >= 1.3 && < 1.4
+                      , extra >= 1.7 && < 1.9
+                      , filepath >= 1.4 && < 1.6
+                      , filepattern >= 0.1 && < 0.2
+                      , monad-parallel >= 0.8 && < 0.9
+                      , process >= 1.6 && < 1.7
+                      , text >= 2.0 && < 2.2
+                      , text-builder-linear >= 0.1 && < 0.2
+                      , text-display >= 1.0 && < 1.1
+                      , time >= 1.12 && < 1.15
+                      , unix-compat >= 0.7 && < 0.8
+                      , xdg-basedir >= 0.2 && < 0.3
 
 test-suite spec
+  import:               base
+  type:                 exitcode-stdio-1.0
   hs-source-dirs:       test
   main-is:              Spec.hs
-  type:                 exitcode-stdio-1.0
-  default-language:     Haskell2010
-  build-depends:        base
-                      , ghc-prim
-                      , process
-                      , time
-                      , directory
-                      , containers
-                      , hspec
-                      , HsYAML
-                      , bytestring
-                      , text
-                      , unordered-containers
-                      , monad-parallel
+  build-depends:        hspec
+  ghc-options:          -Wno-unused-packages
 
 source-repository head
   type:     git
-  location: git@github.com:itchyny/miv.git
+  location: https://github.com/itchyny/miv.git
